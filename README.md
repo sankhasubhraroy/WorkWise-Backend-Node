@@ -23,3 +23,24 @@
 - Admin
 - Payment to Freelancers
 - Contact Us (E-Mail)
+
+Schemas:
+- Consumer
+  - Name
+  - Email
+  - Username
+  - Password
+  - Phone
+  - Address
+  - Payment Details
+- Freelancer
+  - Name
+  - Email
+  - Username
+  - Password
+  - Phone
+  - Address
+  - Account Details
+  - Skills
+  - Role
+  - Priority
