@@ -12,6 +12,6 @@ router.use("/ping", (req, res) => {
 });
 
 // Auth routes
-router.use("/auth", require("./auth"));
+router.use("/auth", require("./auth/index"));
 
 module.exports = router;
