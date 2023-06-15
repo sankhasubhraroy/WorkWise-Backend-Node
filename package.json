@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/sankhasubhraroy/WorkWise#readme",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.1.4",
     "express": "^4.18.2",

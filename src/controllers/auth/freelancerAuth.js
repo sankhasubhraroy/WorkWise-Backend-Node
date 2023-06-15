@@ -1,10 +1,12 @@
 const freelancerModel = require("../../models/freelancerModel");
+const { hashPassword } = require("../../helpers/passwordEncrypt");
 
+// register fnction || method POST
 exports.register = async (req, res) => {
     try {
         const { name, email, username, phone, password } = req.body;
 
-        //checking is freelancer already exists
+        // checking is freelancer already exists
         const existingFreelancer = await freelancerModel.findOne({ email });
 
         // Existing freelancer
@@ -15,13 +17,16 @@ exports.register = async (req, res) => {
             });
         }
 
+        // Encrypting the password
+        const hashedPassword = await hashPassword(password);
+
         // Register Freelancer
         const freelancer = await new freelancerModel({
             name,
             email,
             username,
             phone,
-            password
+            password: hashedPassword
         }).save();
 
         res.status(200).send({
