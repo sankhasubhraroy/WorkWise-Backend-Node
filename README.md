@@ -33,6 +33,7 @@ Schemas:
   - Phone
   - Address
   - Payment Details
+  - avatar
 - Freelancer
   - Name
   - Email
@@ -44,3 +45,4 @@ Schemas:
   - Skills
   - Role
   - Priority
+  - avatar
