@@ -1,17 +1,17 @@
 const router = require("express").Router();
 
 // Ping route
-router.use("/ping", (req, res) => {
+router.get("/ping", (req, res) => {
   console.log(req.start);
   const data = {
     status: "success",
     message: "pong",
     time: new Date().toISOString(),
   };
-  res.json(data);
+  res.status(200).json(data);
 });
 
 // Auth routes
-router.use("/auth", require("./auth/index"));
+router.use("/auth", require("./auth"));
 
 module.exports = router;
