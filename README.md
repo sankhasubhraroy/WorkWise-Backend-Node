@@ -34,6 +34,8 @@ Schemas:
   - Address
   - Payment Details
   - avatar
+  - emailVerified
+  - phoneVerified
 - Freelancer
   - Name
   - Email
@@ -46,3 +48,6 @@ Schemas:
   - Role
   - Priority
   - avatar
+  - emailVerified
+  - phoneVerified
+  - authorized
