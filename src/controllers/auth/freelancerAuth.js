@@ -1,11 +1,50 @@
 const freelancerModel = require("../../models/freelancerModel");
 const { hashPassword, comparePassword } = require("../../helpers/passwordEncrypt");
 const jwt = require("jsonwebtoken");
+const {
+    isNameValid,
+    isEmailValid,
+    isUsernameValid,
+    isPhoneValid,
+    isPasswordValid
+} = require("../../helpers/validations");
 
 // register fnction || method POST
 exports.register = async (req, res) => {
     try {
         const { name, email, username, phone, password } = req.body;
+
+        // validations
+        if (!isNameValid(name)) {
+            return res.status(200).send({
+                success: false,
+                message: "Please enter a valid name"
+            });
+        }
+        if (!isEmailValid(email)) {
+            return res.status(200).send({
+                success: false,
+                message: "Please enter a valid email address"
+            });
+        }
+        if (!isUsernameValid(username)) {
+            return res.status(200).send({
+                success: false,
+                message: "Username should not contain any special characters"
+            });
+        }
+        if (!isPhoneValid(phone)) {
+            return res.status(200).send({
+                success: false,
+                message: "Please enter a valid phone number"
+            });
+        }
+        if (!isPasswordValid(password)) {
+            return res.status(200).send({
+                success: false,
+                message: "Password must contain at least 8 characters, one letter and one number"
+            });
+        }
 
         // checking is freelancer already exists
         const existingFreelancer = await freelancerModel.findOne({ email });
