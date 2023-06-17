@@ -1,4 +1,4 @@
-const freelancerModel = require("../../models/freelancerModel");
+const Freelancer = require("../../models/freelancer");
 const { hashPassword, comparePassword } = require("../../helpers/passwordEncrypt");
 const jwt = require("jsonwebtoken");
 const {
@@ -8,6 +8,7 @@ const {
     isPhoneValid,
     isPasswordValid
 } = require("../../helpers/validations");
+const { ROLE } = require("../../helpers/constants");
 
 // register fnction || method POST
 exports.register = async (req, res) => {
@@ -47,32 +48,52 @@ exports.register = async (req, res) => {
         }
 
         // checking is freelancer already exists
-        const existingFreelancer = await freelancerModel.findOne({ email });
+        const existingFreelancer = await Freelancer.findOne({ $or: [{ email }, { username }, { phone }] });
 
         // Existing freelancer
         if (existingFreelancer) {
             return res.status(200).send({
                 success: false,
-                message: "User already exists"
+                message: "Account already exists"
             });
         }
 
         // Encrypting the password
         const hashedPassword = await hashPassword(password);
 
-        // Register Freelancer
-        const freelancer = await new freelancerModel({
+        // Generating an avatar
+        const size = 200;
+        const avatar = `https://avatars.dicebear.com/api/initials/${name}.svg?size=${size}`;
+
+        // Saving Freelancer to database
+        const freelancer = await new Freelancer({
             name,
             email,
             username,
             phone,
-            password: hashedPassword
+            password: hashedPassword,
+            avatar
         }).save();
+
+        // Creating a payload to store it on jwt
+        const payload = {
+            user: {
+                _id: freelancer._id,
+                type: ROLE.FREELANCER
+            }
+        }
+
+        // Generating a token to validate the user
+        const token = jwt.sign(payload, process.env.JWT_SECRET, {
+            expiresIn: process.env.JWT_EXPIRES_IN
+        });
 
         res.status(200).send({
             success: true,
             message: "User Register Successfully",
-            freelancer,
+            token,
+            user: freelancer,
+            type: ROLE.FREELANCER
         });
 
     } catch (error) {
@@ -97,7 +118,7 @@ exports.login = async (req, res) => {
         }
 
         // fetching freelancer data
-        const freelancer = await freelancerModel.findOne({ email });
+        const freelancer = await Freelancer.findOne({ email });
 
         // when freelancer don't exists
         if (!freelancer) {
@@ -108,9 +129,9 @@ exports.login = async (req, res) => {
         }
 
         // comparing the password with database encrypted password
-        const match = await comparePassword(password, freelancer.password);
+        const isMatch = await comparePassword(password, freelancer.password);
 
-        if (!match) {
+        if (!isMatch) {
             return res.status(200).send({
                 success: false,
                 message: "Incorrect Password",
@@ -118,15 +139,24 @@ exports.login = async (req, res) => {
         }
 
         // when freelancer exists
-        const token = jwt.sign({ _id: freelancer._id }, process.env.JWT_SECRET, {
-            expiresIn: "30d"
+        const payload = {
+            user: {
+                _id: freelancer._id,
+                type: ROLE.FREELANCER
+            }
+        }
+
+        // Generating a token and sending it
+        const token = jwt.sign(payload, process.env.JWT_SECRET, {
+            expiresIn: process.env.JWT_EXPIRES_IN
         });
 
         res.status(200).send({
             success: true,
             message: "Login successful",
-            freelancer,
-            token
+            token,
+            user: freelancer,
+            type: ROLE.FREELANCER
         });
 
     } catch (error) {
