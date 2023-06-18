@@ -20,21 +20,18 @@ const consumerSchema = new Schema(
       required: true,
       trim: true,
       unique: true,
-      match: [/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/, 'Please enter a valid email'],
+      match: [/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/, 'Invalid email'],
     },
     phone: {
       type: String,
       required: true,
       trim: true,
       unique: true,
-      minlength: 3,
-      match: [/^((\+91)?|91?|0)?[789][0-9]{9}/, 'Please enter a valid phone number'],
+      match: [/^((\+91)?|91?|0)?[789][0-9]{9}/, 'Invalid phone number'],
     },
     password: {
       type: String,
       trim: true,
-      minlength: 3,
-      match: [/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/, 'Password must contain at least 8 characters, one letter and one number']
     },
     address: {
       type: Object,

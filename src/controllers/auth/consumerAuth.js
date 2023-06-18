@@ -28,7 +28,41 @@ const validateConsumer = async (req, res, next) => {
 const register = async (req, res) => {
   const { name, username, email, phone, password } = req.body;
 
+  // Validations
+  if (!isNameValid(name)) {
+    return res.status(400).send({
+      success: false,
+      message: "Please enter a valid name",
+    });
+  }
+  if (!isEmailValid(email)) {
+    return res.status(400).send({
+      success: false,
+      message: "Please enter a valid email address",
+    });
+  }
+  if (!isUsernameValid(username)) {
+    return res.status(400).send({
+      success: false,
+      message: "Username should not contain any special characters",
+    });
+  }
+  if (!isPhoneValid(phone)) {
+    return res.status(400).send({
+      success: false,
+      message: "Please enter a valid phone number",
+    });
+  }
+  if (!isPasswordValid(password)) {
+    return res.status(400).send({
+      success: false,
+      message:
+        "Password must contain at least 8 characters, one letter and one number",
+    });
+  }
+
   try {
+    // Check if consumer already exists
     let doesExist = await Consumer.findOne({ email: email });
 
     if (doesExist) {
@@ -38,6 +72,7 @@ const register = async (req, res) => {
       });
     }
 
+    // Create new consumer
     let consumer = new Consumer();
 
     consumer.name = name;
@@ -52,6 +87,7 @@ const register = async (req, res) => {
 
     await consumer.save();
 
+    // Payload for the JWT token
     const payload = {
       user: {
         id: consumer.id,
@@ -59,6 +95,7 @@ const register = async (req, res) => {
       },
     };
 
+    // JWT token generation
     jwt.sign(
       payload,
       process.env.JWT_SECRET,
@@ -90,9 +127,18 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
-  console.log(email, password);
+  // console.log(email, password);
+
+  // Validations
+  if (!isEmailValid(email)) {
+    return res.status(400).send({
+      success: false,
+      message: "Please enter a valid email address",
+    });
+  }
 
   try {
+    // Check if consumer exists
     let consumer = await Consumer.findOne({
       email: email,
     });
@@ -100,10 +146,11 @@ const login = async (req, res) => {
     if (!consumer) {
       return res.status(400).json({
         success: false,
-        msg: "User not exists go & register to continue.",
+        msg: "User not exists with this email, Please register first",
       });
     }
 
+    // Check if password is correct
     const isMatch = await comparePassword(password, consumer.password);
 
     if (!isMatch) {
@@ -113,6 +160,7 @@ const login = async (req, res) => {
       });
     }
 
+    // Payload for the JWT token
     const payload = {
       user: {
         id: consumer.id,
@@ -120,6 +168,7 @@ const login = async (req, res) => {
       },
     };
 
+    // JWT token generation
     jwt.sign(
       payload,
       process.env.JWT_SECRET,
