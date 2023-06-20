@@ -1,8 +1,17 @@
 const router = require("express").Router();
-const { register, login } = require("../../controllers/auth/freelancerAuth");
+const {
+    register,
+    login,
+    loginWithGoogle,
+    googleCallback
+} = require("../../controllers/auth/freelancerAuth");
 
 router.post("/register", register);
 
 router.post("/login", login);
+
+router.get("/google", loginWithGoogle);
+
+router.get("/google/callback", googleCallback);
 
 module.exports = router;

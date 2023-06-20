@@ -21,11 +21,19 @@ const freelancerSchema = new mongoose.Schema({
         minlength: 3,
         required: 'Username is required'
     },
+    googleId: {
+        type: String,
+        trim: true,
+        index: true,
+        unique: true,
+        sparse: true
+    },
     phone: {
         type: String,
         trim: true,
+        index: true,
         unique: true,
-        required: 'Phone number is required'
+        sparse: true
     },
     password: {
         type: String,

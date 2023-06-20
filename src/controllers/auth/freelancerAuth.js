@@ -9,6 +9,15 @@ const {
     isPasswordValid
 } = require("../../helpers/validations");
 const { ROLE } = require("../../helpers/constants");
+const { google } = require("googleapis");
+const { generateJWT } = require("../../helpers/generateJWT");
+const { generateUsername } = require("../../helpers/generateUsername");
+const GOOGLE_REDIRECT_URL = "http://localhost:5000/api/auth/freelancer/google/callback";
+const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    GOOGLE_REDIRECT_URL
+);
 
 // register fnction || method POST
 exports.register = async (req, res) => {
@@ -17,31 +26,31 @@ exports.register = async (req, res) => {
 
         // validations
         if (!isNameValid(name)) {
-            return res.status(200).send({
+            return res.status(400).send({
                 success: false,
                 message: "Please enter a valid name"
             });
         }
         if (!isEmailValid(email)) {
-            return res.status(200).send({
+            return res.status(400).send({
                 success: false,
                 message: "Please enter a valid email address"
             });
         }
         if (!isUsernameValid(username)) {
-            return res.status(200).send({
+            return res.status(400).send({
                 success: false,
                 message: "Username should not contain any special characters"
             });
         }
         if (!isPhoneValid(phone)) {
-            return res.status(200).send({
+            return res.status(400).send({
                 success: false,
                 message: "Please enter a valid phone number"
             });
         }
         if (!isPasswordValid(password)) {
-            return res.status(200).send({
+            return res.status(400).send({
                 success: false,
                 message: "Password must contain at least 8 characters, one letter and one number"
             });
@@ -50,9 +59,9 @@ exports.register = async (req, res) => {
         // checking is freelancer already exists
         const existingFreelancer = await Freelancer.findOne({ $or: [{ email }, { username }, { phone }] });
 
-        // Existing freelancer
+        // When freelancer already exists
         if (existingFreelancer) {
-            return res.status(200).send({
+            return res.status(400).send({
                 success: false,
                 message: "Account already exists"
             });
@@ -78,7 +87,7 @@ exports.register = async (req, res) => {
         // Creating a payload to store it on jwt
         const payload = {
             user: {
-                _id: freelancer._id,
+                id: freelancer.id,
                 type: ROLE.FREELANCER
             }
         }
@@ -111,7 +120,7 @@ exports.login = async (req, res) => {
 
         // validations
         if (!email || !password) {
-            return res.status(404).send({
+            return res.status(400).send({
                 success: false,
                 message: "Invalid email or password"
             });
@@ -122,7 +131,7 @@ exports.login = async (req, res) => {
 
         // when freelancer don't exists
         if (!freelancer) {
-            return res.status(404).send({
+            return res.status(400).send({
                 success: false,
                 message: "Account dosen't exists, create a new account"
             });
@@ -141,7 +150,7 @@ exports.login = async (req, res) => {
         // when freelancer exists
         const payload = {
             user: {
-                _id: freelancer._id,
+                id: freelancer.id,
                 type: ROLE.FREELANCER
             }
         }
@@ -164,5 +173,101 @@ exports.login = async (req, res) => {
             success: false,
             message: error.message
         });
+    }
+}
+
+// generating google auth url
+exports.loginWithGoogle = (req, res) => {
+    try {
+        // generate a url that asks permissions for [profile] and email scopes
+        const scopes = [
+            'https://www.googleapis.com/auth/userinfo.profile',
+            'https://www.googleapis.com/auth/userinfo.email'
+        ];
+
+        const authUrl = oauth2Client.generateAuthUrl({
+            access_type: "offline",
+            response_type: "code",
+            prompt: "consent",
+            scope: scopes
+        });
+
+        res.redirect(authUrl);
+
+    } catch (error) {
+        res.status(500).send({
+            success: false,
+            message: error.message
+        });
+    }
+}
+
+exports.googleCallback = async (req, res) => {
+    try {
+        const { tokens } = await oauth2Client.getToken(req.query.code);
+        oauth2Client.setCredentials(tokens);
+
+        const oauth2 = google.oauth2({
+            auth: oauth2Client,
+            version: "v2"
+        });
+
+        // get user info
+        const { data } = await oauth2.userinfo.get();
+
+        const userData = {
+            name: data.name,
+            email: data.email,
+            username: await generateUsername(Freelancer, data.name),
+            googleId: data.id,
+            avatar: data.picture,
+            emailVerified: data.verified_email
+        };
+        createFreelancer(userData, res);
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+}
+
+const createFreelancer = async (userData, res) => {
+    try {
+        const { email } = userData;
+
+        // checking is freelancer already exists
+        let freelancer = await Freelancer.findOne({ email });
+
+        // When freelancer don't exists creating a new account
+        if (!freelancer) {
+            freelancer = await new Freelancer(userData).save();
+        }
+
+        // Creating a payload to store it on jwt
+        const payload = {
+            user: {
+                id: freelancer.id,
+                type: ROLE.FREELANCER
+            }
+        }
+
+        // Generating a token to validate the user
+        const token = await generateJWT(payload);
+
+        return res.status(200).send({
+            success: true,
+            message: "User Logged in Successfully",
+            token,
+            user: freelancer,
+            type: ROLE.FREELANCER
+        });
+
+    } catch (error) {
+        return res.status(400).send({
+            success: false,
+            message: error.message
+        })
     }
 }
