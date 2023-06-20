@@ -1,4 +1,3 @@
-const jwt = require("jsonwebtoken");
 const Consumer = require("../../models/consumer");
 const { google } = require("googleapis");
 const {
@@ -14,6 +13,7 @@ const {
   isPhoneValid,
   isPasswordValid,
 } = require("../../helpers/validations");
+const { generateJWT } = require("../../helpers/generateJWT");
 
 // Token Validation Route for Consumers
 const validateConsumer = async (req, res, next) => {
@@ -66,7 +66,7 @@ const register = async (req, res) => {
     return res.status(400).send({
       success: false,
       message:
-        "Password must contain at least 8 characters, one letter and one number",
+        "Password must contain at least 8 characters, one letter and one number and no special characters",
     });
   }
 
@@ -129,6 +129,12 @@ const login = async (req, res) => {
     }
 
     // Check if password is correct
+    if (!consumer.password) {
+      return res.status(400).json({
+        success: false,
+        msg: "You don't have a password, please login with Google",
+      });
+    }
     const isMatch = await comparePassword(password, consumer.password);
 
     if (!isMatch) {
@@ -147,29 +153,19 @@ const login = async (req, res) => {
     };
 
     // JWT token generation
-    jwt.sign(
-      payload,
-      process.env.JWT_SECRET,
-      {
-        expiresIn: process.env.JWT_EXPIRES_IN,
-      },
-      (err, token) => {
-        if (err) throw err;
-
-        res.status(200).json({
-          success: true,
-          msg: "User logged in",
-          token: token,
-          user: consumer,
-          type: ROLE.CONSUMER,
-        });
-      }
-    );
+    const token = await generateJWT(payload);
+    res.status(200).json({
+      success: true,
+      message: "User logged in",
+      token: token,
+      user: consumer,
+      type: ROLE.CONSUMER,
+    });
   } catch (error) {
-    console.log(error.message);
+    console.log(error);
     res.status(500).json({
       success: false,
-      msg: "Server Error",
+      message: `Server Error ${error.message}`,
     });
   }
 };
@@ -278,24 +274,14 @@ const createConsumer = async (userData, res) => {
     };
 
     // JWT token generation
-    jwt.sign(
-      payload,
-      process.env.JWT_SECRET,
-      {
-        expiresIn: process.env.JWT_EXPIRES_IN,
-      },
-      (err, token) => {
-        if (err) throw err;
-
-        res.status(200).json({
-          success: true,
-          msg: "User registered",
-          token: token,
-          user: consumer,
-          type: ROLE.CONSUMER,
-        });
-      }
-    );
+    const token = await generateJWT(payload);
+    res.status(200).json({
+      success: true,
+      message: "User logged in",
+      token: token,
+      user: consumer,
+      type: ROLE.CONSUMER,
+    });
   } catch (error) {
     console.log(error.message);
     res.status(500).json({
