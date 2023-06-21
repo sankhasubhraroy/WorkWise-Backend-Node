@@ -1,5 +1,5 @@
 const Freelancer = require("../../models/freelancer");
-const Code = require('../../models/code');
+const OTP = require('../../models/otp');
 const { hashPassword, comparePassword } = require("../../helpers/passwordEncrypt");
 const crypto = require('crypto');
 const {
@@ -98,14 +98,14 @@ exports.register = async (req, res) => {
         const token = await generateJWT(payload);
 
         // Generating a randome key and saving it to database for email verification
-        const code = await new Code({
+        const otp = await new OTP({
             userId: freelancer.id,
             key: crypto.randomBytes(32).toString("hex")
         }).save();
 
-        const content = `<p>Please click <a href=${process.env.BASE_URL}/freelancer/verify/email/?id=${code.userId}&key=${code.key}>here</a> to verify your email.</p>`
+        const content = `<p>Please click <a href=${process.env.BASE_URL}/freelancer/verify/email/?id=${otp.userId}&key=${otp.key}>here</a> to verify your email.</p>`
 
-        console.log("is Success:",await sendMail(freelancer.email, "Verify Email", content));
+        console.log("is Success:", await sendMail(freelancer.email, "Verify Email", content));
 
         res.status(200).send({
             success: true,
@@ -259,7 +259,7 @@ const createFreelancer = async (userData, res) => {
                 id: freelancer.id,
                 type: ROLE.FREELANCER
             }
-        }
+        };
 
         // Generating a token to validate the user
         const token = await generateJWT(payload);
@@ -276,11 +276,11 @@ const createFreelancer = async (userData, res) => {
         return res.status(400).send({
             success: false,
             message: error.message
-        })
+        });
     }
 }
 
-// function to verify the code send to email || method GET
+// function to verify the OTP previously sent to email || method GET
 exports.verifyEmail = async (req, res) => {
     try {
         const freelancer = await Freelancer.findOne({ _id: req.query.id });
@@ -302,24 +302,24 @@ exports.verifyEmail = async (req, res) => {
         }
 
         // When freelancer exists by that id, checking if the key is valid or not
-        const code = await Code.findOne({
+        const otp = await OTP.findOne({
             userId: req.query.id,
             key: req.query.key
         });
 
         // when key doesn't exists || may have expired
-        if (!code) {
+        if (!otp) {
             return res.status(400).send({
                 success: false,
-                message: "Invalid key or may have expired"
+                message: "Invalid OTP or may have expired"
             });
         }
 
-        // Updating freelancer data when code is valid
+        // Updating freelancer data when OTP is valid
         await freelancer.updateOne({ emailVerified: true });
 
-        // removing the code after verification
-        await Code.findByIdAndRemove(code.id);
+        // removing the OTP after verification
+        await OTP.findByIdAndRemove(otp.id);
 
         res.status(200).send({
             success: true,

@@ -1,23 +1,23 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-const codeSchema = new Schema({
+const otpSchema = new Schema({
     userId: {
-        type: String,
+        type: Schema.Types.ObjectId,
         required: true,
         unique: true
     },
     key: {
         type: String,
-        required: true,
+        required: true
     },
     expireIn: {
         type: Date,
         default: Date.now,
         index: {
-            expires: 7200
+            expires: 600
         }
     }
 });
 
-module.exports = mongoose.model("code", codeSchema);
+module.exports = mongoose.model("otp", otpSchema);
