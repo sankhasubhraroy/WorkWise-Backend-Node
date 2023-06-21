@@ -5,7 +5,7 @@ async function authUser(req, res, next) {
 
   if (!token) {
     return res.status(401).json({
-      msg: "No token, authorization denied",
+      message: "No token, authorization denied",
     });
   }
 
@@ -13,7 +13,7 @@ async function authUser(req, res, next) {
     await jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
       if (err) {
         res.status(401).json({
-          msg: "Invalid token",
+          message: "Invalid token",
         });
       } else {
         req.user = decoded.user;
@@ -23,7 +23,7 @@ async function authUser(req, res, next) {
   } catch (err) {
     console.log("Something wend wrong with middleware " + err);
     res.json(500).json({
-      msg: "Server error",
+      message: "Server error",
     });
   }
 }

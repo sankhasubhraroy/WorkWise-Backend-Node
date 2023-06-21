@@ -10,11 +10,14 @@
 ### Entity of Consumer:
 - Consumer
 - Orders
+- JOBS / SKILLS
 - Payment
 - Messages
 
 ### Entity of Freelancer:
 - Freelancer
+- JOBS / SKILLS
+- Projects
 - Work History
 - Orders
 - Messages
@@ -45,9 +48,15 @@ Schemas:
   - Address
   - Account Details
   - Skills
-  - Role
+  - Projects
   - Priority
   - avatar
   - emailVerified
   - phoneVerified
   - authorized
+- Work
+  - freelancerId
+  - consumerId
+  - skillId
+  - price
+  - status (requested, accepted, rejected, ongoing, failed, completed)
