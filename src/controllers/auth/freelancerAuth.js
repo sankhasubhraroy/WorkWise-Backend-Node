@@ -1,6 +1,7 @@
 const Freelancer = require("../../models/freelancer");
+const Code = require('../../models/code');
 const { hashPassword, comparePassword } = require("../../helpers/passwordEncrypt");
-const jwt = require("jsonwebtoken");
+const crypto = require('crypto');
 const {
     isNameValid,
     isEmailValid,
@@ -12,6 +13,7 @@ const { ROLE } = require("../../helpers/constants");
 const { google } = require("googleapis");
 const { generateJWT } = require("../../helpers/generateJWT");
 const { generateUsername } = require("../../helpers/generateUsername");
+const sendMail = require("../../helpers/sendMail");
 const GOOGLE_REDIRECT_URL = "http://localhost:5000/api/auth/freelancer/google/callback";
 const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
@@ -84,7 +86,7 @@ exports.register = async (req, res) => {
             avatar
         }).save();
 
-        // Creating a payload to store it on jwt
+        // Creating a payload to store it on JWT
         const payload = {
             user: {
                 id: freelancer.id,
@@ -92,10 +94,18 @@ exports.register = async (req, res) => {
             }
         }
 
-        // Generating a token to validate the user
-        const token = jwt.sign(payload, process.env.JWT_SECRET, {
-            expiresIn: process.env.JWT_EXPIRES_IN
-        });
+        // Generating a JWT token to validate the user
+        const token = await generateJWT(payload);
+
+        // Generating a randome key and saving it to database for email verification
+        const code = await new Code({
+            userId: freelancer.id,
+            key: crypto.randomBytes(32).toString("hex")
+        }).save();
+
+        const content = `<p>Please click <a href=${process.env.BASE_URL}/freelancer/verify/email/?id=${code.userId}&key=${code.key}>here</a> to verify your email.</p>`
+
+        await sendMail(freelancer.email, "Verify Email", content);
 
         res.status(200).send({
             success: true,
@@ -147,7 +157,7 @@ exports.login = async (req, res) => {
             });
         }
 
-        // when freelancer exists
+        // Create a paylaod to store it on JWT
         const payload = {
             user: {
                 id: freelancer.id,
@@ -155,10 +165,8 @@ exports.login = async (req, res) => {
             }
         }
 
-        // Generating a token and sending it
-        const token = jwt.sign(payload, process.env.JWT_SECRET, {
-            expiresIn: process.env.JWT_EXPIRES_IN
-        });
+        // Generating a JWT token and sending it
+        const token = await generateJWT(payload);
 
         res.status(200).send({
             success: true,
@@ -269,5 +277,59 @@ const createFreelancer = async (userData, res) => {
             success: false,
             message: error.message
         })
+    }
+}
+
+// function to verify the code send to email || method GET
+exports.verifyEmail = async (req, res) => {
+    try {
+        const freelancer = await Freelancer.findOne({ _id: req.query.id });
+
+        // When no freelancer exists by this id
+        if (!freelancer) {
+            return res.status(400).send({
+                success: false,
+                message: "Invalid link"
+            });
+        }
+
+        // When the freelancer is already verified
+        if (freelancer.emailVerified) {
+            return res.status(400).send({
+                success: false,
+                message: "Already verified"
+            });
+        }
+
+        // When freelancer exists by that id, checking if the key is valid or not
+        const code = await Code.findOne({
+            userId: req.query.id,
+            key: req.query.key
+        });
+
+        // when key doesn't exists || may have expired
+        if (!code) {
+            return res.status(400).send({
+                success: false,
+                message: "Invalid key or may have expired"
+            });
+        }
+
+        // Updating freelancer data when code is valid
+        await freelancer.updateOne({ emailVerified: true });
+
+        // removing the code after verification
+        await Code.findByIdAndRemove(code.id);
+
+        res.status(200).send({
+            success: true,
+            message: "Email id successfully verified"
+        });
+
+    } catch (error) {
+        return res.status(400).send({
+            success: false,
+            message: error.message
+        });
     }
 }
