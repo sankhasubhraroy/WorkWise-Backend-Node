@@ -14,7 +14,7 @@ const { google } = require("googleapis");
 const { generateJWT } = require("../../helpers/generateJWT");
 const { generateUsername } = require("../../helpers/generateUsername");
 const sendMail = require("../../helpers/sendMail");
-const getOTPContent = require("../../../utils/otpContent");
+const getOTPContent = require("../../utils/otpContent");
 const GOOGLE_REDIRECT_URL = "http://localhost:5000/api/auth/freelancer/google/callback";
 const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
@@ -341,6 +341,58 @@ exports.verifyEmail = async (req, res) => {
         res.status(200).send({
             success: true,
             message: "Email id successfully verified"
+        });
+
+    } catch (error) {
+        return res.status(400).send({
+            success: false,
+            message: error.message
+        });
+    }
+}
+
+// Function for sesending the OTP again || method GET
+exports.resendVerificationEmail = async (req, res) => {
+    try {
+        const freelancer = await Freelancer.findById(req.user.id).select("-password");
+
+        // When freelancer don't exists
+        if (!freelancer) {
+            return res.status(400).send({
+                success: false,
+                message: "Server error"
+            });
+        }
+
+        // When the freelancer is already verified
+        if (freelancer.emailVerified) {
+            return res.status(400).send({
+                success: false,
+                message: "Email already verified"
+            });
+        }
+
+        // checking if there any existing OTP related with same user
+        const otp = await OTP.findOne({ userId: freelancer.id });
+
+        // Removing the existing OTP
+        if (otp) {
+            await OTP.findByIdAndRemove(otp.id);
+        }
+
+        // Generating new randome key and saving it to database for email verification
+        const newOTP = await new OTP({
+            userId: freelancer.id,
+            key: crypto.randomBytes(32).toString("hex")
+        }).save();
+
+        const content = getOTPContent("freelancer", newOTP);
+
+        console.log("is Success:", await sendMail(freelancer.email, "Verify Email", content));
+
+        res.status(200).send({
+            success: true,
+            message: "Verification link send successfully"
         });
 
     } catch (error) {
