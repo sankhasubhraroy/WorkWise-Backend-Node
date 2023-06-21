@@ -15,6 +15,11 @@ const USERNAME_REGEX = /^[a-zA-Z0-9]+$/
 const PHONE_REGEX = /^((\+91)?|91?|0)?[789][0-9]{9}$/
 const PASSWORD_REGEX = /^(?=.[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/
 
+const GOOGLE_SCOPES = [
+  "https://www.googleapis.com/auth/userinfo.profile",
+  "https://www.googleapis.com/auth/userinfo.email",
+]
+
 module.exports = {
   ROLE,
   AVATAR_IMAGE_SIZE,
@@ -23,4 +28,5 @@ module.exports = {
   USERNAME_REGEX,
   PHONE_REGEX,
   PASSWORD_REGEX,
+  GOOGLE_SCOPES
 };
