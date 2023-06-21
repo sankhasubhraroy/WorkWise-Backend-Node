@@ -21,6 +21,22 @@ const oauth2Client = new google.auth.OAuth2(
     GOOGLE_REDIRECT_URL
 );
 
+exports.validateFreelancer = async (req, res) => {
+    try {
+        const freelancer = await Freelancer.findById(req.user.id).select("-password -createdAt -updatedAt");
+        res.status(200).send({
+            success: true,
+            message: "Valid",
+            freelancer
+        });
+    } catch (error) {
+        return res.status(500).send({
+            success: false,
+            message: error.message
+        });
+    }
+}
+
 // register fnction || method POST
 exports.register = async (req, res) => {
     try {
@@ -283,7 +299,7 @@ const createFreelancer = async (userData, res) => {
 // function to verify the OTP previously sent to email || method GET
 exports.verifyEmail = async (req, res) => {
     try {
-        const freelancer = await Freelancer.findOne({ _id: req.query.id });
+        const freelancer = await Freelancer.findById(req.query.id);
 
         // When no freelancer exists by this id
         if (!freelancer) {

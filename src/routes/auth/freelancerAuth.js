@@ -5,7 +5,12 @@ const {
     loginWithGoogle,
     googleCallback,
     verifyEmail,
+    validateFreelancer,
 } = require("../../controllers/auth/freelancerAuth");
+const { ROLE } = require("../../helpers/constants");
+const { authUser, authRole } = require("../../middlewares/auth");
+
+router.get("/", authUser, authRole(ROLE.FREELANCER), validateFreelancer);
 
 router.post("/register", register);
 
