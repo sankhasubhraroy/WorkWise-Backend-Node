@@ -1,15 +1,6 @@
 const nodemailer = require("nodemailer");
 
-const sendMail = async (email, subject, otp) => {
-    const content = `
-    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-        <h1 style="color: #0d6efd;">WorkWise</h1>
-        <h2 style="color: #0d6efd;">OTP for Email Verification</h2>
-        <p>Your OTP for email verification is <strong>${otp}</strong></p>
-        <p>Please click <a href=${process.env.BASE_URL}/auth/consumer/verify/email/?id=${email}&key=${otp}>here</a> to verify your email.</p>
-        <p>Thank you for using WorkWise</p>
-    </div>
-    `;
+const sendMail = async (email, subject, content) => {
     try {
         const transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST,

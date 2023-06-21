@@ -14,6 +14,7 @@ const { google } = require("googleapis");
 const { generateJWT } = require("../../helpers/generateJWT");
 const { generateUsername } = require("../../helpers/generateUsername");
 const sendMail = require("../../helpers/sendMail");
+const getOTPContent = require("../../../utils/otpContent");
 const GOOGLE_REDIRECT_URL = "http://localhost:5000/api/auth/freelancer/google/callback";
 const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
@@ -119,7 +120,7 @@ exports.register = async (req, res) => {
             key: crypto.randomBytes(32).toString("hex")
         }).save();
 
-        const content = `<p>Please click <a href=${process.env.BASE_URL}/freelancer/verify/email/?id=${otp.userId}&key=${otp.key}>here</a> to verify your email.</p>`
+        const content = getOTPContent("freelancer", otp);
 
         console.log("is Success:", await sendMail(freelancer.email, "Verify Email", content));
 
