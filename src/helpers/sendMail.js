@@ -1,6 +1,7 @@
 const nodemailer = require("nodemailer");
 
 const sendMail = async (email, subject, content) => {
+    console.log("sendMail", email, subject, content);
     try {
         const transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST,
@@ -18,18 +19,14 @@ const sendMail = async (email, subject, content) => {
             to: email,
             subject: subject,
             html: content
-        }
+        };
 
-        await transporter.sendMail(options, (err, info) => {
-            if (err) {
-                return false;
-            }
-            else {
-                return true;
-            }
-        });
+        const info = await transporter.sendMail(options);
+        console.log("Message sent: %s", info.messageId);
+        return true;
     }
     catch (error) {
+        console.log(error);
         return false;
     }
 }

@@ -105,7 +105,7 @@ exports.register = async (req, res) => {
 
         const content = `<p>Please click <a href=${process.env.BASE_URL}/freelancer/verify/email/?id=${code.userId}&key=${code.key}>here</a> to verify your email.</p>`
 
-        await sendMail(freelancer.email, "Verify Email", content);
+        console.log("is Success:",await sendMail(freelancer.email, "Verify Email", content));
 
         res.status(200).send({
             success: true,
