@@ -1,10 +1,16 @@
-const Consumer = require("../../models/consumer");
 const { google } = require("googleapis");
+const crypto = require("crypto");
+const Consumer = require("../../models/consumer");
+const OTP = require("../../models/otp");
 const {
   hashPassword,
   comparePassword,
 } = require("../../helpers/passwordEncrypt");
-const { ROLE, AVATAR_IMAGE_SIZE } = require("../../helpers/constants");
+const {
+  ROLE,
+  GOOGLE_SCOPES,
+  DEFAULT_AVATAR,
+} = require("../../helpers/constants");
 const { generateUsername } = require("../../helpers/generateUsername");
 const {
   isNameValid,
@@ -14,6 +20,15 @@ const {
   isPasswordValid,
 } = require("../../helpers/validations");
 const { generateJWT } = require("../../helpers/generateJWT");
+const sendMail = require("../../helpers/sendMail");
+const getOTPContent = require("../../utils/otpContent");
+
+// Google OAuth2 Client
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_CALLBACK_URL
+);
 
 // Token Validation Route for Consumers
 const validateConsumer = async (req, res, next) => {
@@ -27,7 +42,7 @@ const validateConsumer = async (req, res, next) => {
     console.log(error.message);
     res.status(500).json({
       success: false,
-      msg: "Server Error",
+      message: "Server Error",
     });
     next();
   }
@@ -72,31 +87,64 @@ const register = async (req, res) => {
 
   try {
     // Check if consumer already exists
-    const doesExist = await Consumer.findOne({ email: email });
+    const doesExist = await Consumer.findOne({
+      $or: [{ email }, { username }, { phone }],
+    });
 
     if (doesExist) {
       return res.status(400).json({
         success: false,
-        msg: "Email already exists",
+        message: "Email already exists",
       });
     }
 
-    createConsumer(
-      {
-        name,
-        username,
-        email,
-        phone,
-        password: await hashPassword(password),
-        avatar: `https://avatars.dicebear.com/api/initials/${name}.svg?size=${AVATAR_IMAGE_SIZE}`,
+    const userData = {
+      name,
+      username,
+      email,
+      phone,
+      password: await hashPassword(password),
+      avatar: DEFAULT_AVATAR(name),
+    };
+
+    // Create Consumer in database
+    const consumer = await createConsumer(userData);
+
+    // Payload for the JWT token
+    const payload = {
+      user: {
+        id: consumer.id,
+        type: ROLE.CONSUMER,
       },
-      res
-    );
+    };
+
+    // Generating a randome key and saving it to database for email verification
+    const otp = await new OTP({
+      userId: consumer.id,
+      key: crypto.randomBytes(32).toString("hex"),
+    }).save();
+
+    // Sending email to the consumer for email verification
+    const mailContent = getOTPContent(ROLE.CONSUMER, otp.key);
+    const mailSent = await sendMail(email, "Verify Email", mailContent);
+    if (!mailSent) {
+      throw new Error("Unable to send email");
+    }
+
+    // JWT token generation
+    const token = await generateJWT(payload);
+    return res.status(200).json({
+      success: true,
+      message: "User logged in",
+      token: token,
+      user: consumer,
+      type: ROLE.CONSUMER,
+    });
   } catch (error) {
     console.log(error.message);
     res.status(500).json({
       success: false,
-      msg: `Server Error ${error.message}`,
+      message: `Server Error ${error.message}`,
     });
   }
 };
@@ -124,7 +172,7 @@ const login = async (req, res) => {
     if (!consumer) {
       return res.status(400).json({
         success: false,
-        msg: "User not exists with this email, Please register first",
+        message: "User not exists with this email, Please register first",
       });
     }
 
@@ -132,7 +180,7 @@ const login = async (req, res) => {
     if (!consumer.password) {
       return res.status(400).json({
         success: false,
-        msg: "You don't have a password, please login with Google",
+        message: "You don't have a password, please login with Google",
       });
     }
     const isMatch = await comparePassword(password, consumer.password);
@@ -140,7 +188,7 @@ const login = async (req, res) => {
     if (!isMatch) {
       return res.status(400).json({
         success: false,
-        msg: "Invalid password",
+        message: "Invalid password",
       });
     }
 
@@ -176,94 +224,53 @@ const logout = async (req, res, next) => {
     const consumer = await Consumer.findById(req.user.id).select("-password");
     res.status(200).json({
       success: true,
-      msg: "User logged out",
+      message: "User logged out",
       consumer,
     });
   } catch (error) {
     console.log(error.message);
     res.status(500).json({
       success: false,
-      msg: "Server Error",
+      message: "Server Error",
     });
   }
 };
 
 //login with google
 const loginWithGoogle = (req, res) => {
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    "http://localhost:5000/api/auth/consumer/google/callback"
-  );
-
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: "offline",
-    scope: ["email", "profile"],
+    response_type: "code",
+    prompt: "consent",
+    scope: GOOGLE_SCOPES,
   });
   res.redirect(authUrl);
 };
 
 //callback
 const googleCallback = async (req, res) => {
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    "http://localhost:5000/api/auth/consumer/google/callback"
-  );
   try {
-    if (!req?.query?.code) {
-      return res.status(400).json({
-        success: false,
-        message: "Error logging in with Google",
-      });
-    }
     const { tokens } = await oauth2Client.getToken(req.query.code);
     oauth2Client.setCredentials(tokens);
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({
-      success: false,
-      message: "Server Error",
+
+    var oauth2 = google.oauth2({
+      auth: oauth2Client,
+      version: "v2",
     });
-  }
 
-  var oauth2 = google.oauth2({
-    auth: oauth2Client,
-    version: "v2",
-  });
-  oauth2.userinfo.get(async function (err, response) {
-    if (err) {
-      console.log(err);
-      res.status(500).json({
-        success: false,
-        message: "Server Error",
-      });
-    } else {
-      // console.log(response.data);
-      const userData = {
-        name: response.data.name,
-        email: response.data.email,
-        avatar: response.data.picture,
-        googleId: response.data.id,
-        username: await generateUsername(Consumer, response.data.name),
-      };
-      createConsumer(userData, res);
-    }
-  });
-};
+    const { data } = await oauth2.userinfo.get();
+    const userData = {
+      name: data.name,
+      email: data.email,
+      avatar: data.picture,
+      googleId: data.id,
+      username: await generateUsername(Consumer, data.name),
+    };
 
-// Create Consumer and generate JWT token
-const createConsumer = async (userData, res) => {
-  const { email } = userData;
-
-  try {
-    // Check if consumer already exists
-    let consumer = await Consumer.findOne({ email });
-    if (!consumer) {
-      const newConsumer = new Consumer(userData);
-      await newConsumer.save();
-      consumer = newConsumer;
-    }
+    // Check if consumer already exists otherwise create one
+    const consumer =
+      (await Consumer.findOne({ email: userData.email })) ??
+      (await createConsumer(userData));
 
     // Payload for the JWT token
     const payload = {
@@ -275,21 +282,147 @@ const createConsumer = async (userData, res) => {
 
     // JWT token generation
     const token = await generateJWT(payload);
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "User logged in",
       token: token,
       user: consumer,
       type: ROLE.CONSUMER,
     });
-  } catch (error) {
-    console.log(error.message);
-    res.status(500).json({
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
       success: false,
-      msg: `Server Error. ${error.message}`,
+      message: `Server Error ${err.message}`,
     });
   }
 };
+
+// Create Consumer and save to database
+const createConsumer = async (userData) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const consumer = new Consumer(userData);
+      await consumer.save();
+      resolve(consumer);
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+const verifyEmail = async (req, res) => {
+  const { id, key } = req.query;
+  try {
+    const consumer = await Consumer.findById(id);
+    if (!consumer) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP",
+      });
+    }
+
+    // When the consumer is already verified
+    if (consumer.emailVerified) {
+      return res.status(400).send({
+        success: false,
+        message: "Already verified",
+      });
+    }
+
+    // When freelancer exists by that id, checking if the key is valid or not
+    const otp = await OTP.findOne({
+      userId: id,
+      key,
+    });
+
+    // when key doesn't exists || may have expired
+    if (!otp) {
+      return res.status(400).send({
+        success: false,
+        message: "Invalid OTP or may have expired",
+      });
+    }
+
+    console.log(key, otp);
+
+    // When key exists and is valid then validate the consumer email
+    await consumer.updateOne({
+      emailVerified: true,
+    });
+
+    // Delete the OTP from database
+    await OTP.findByIdAndRemove(otp.id);
+
+    res.status(200).json({
+      success: true,
+      message: "Email verified successfully",
+    });
+  } catch (error) {
+    console.log(error.message);
+    return res.status(500).json({
+      success: false,
+      message: `Server Error. ${error.message}`,
+    });
+  }
+};
+
+// Resending the OTP again
+const resendVerificationEmail = async (req, res) => {
+  try {
+      const consumer = await Consumer.findById(req.user.id).select("-password");
+
+      // When consumer don't exists
+      if (!consumer) {
+          return res.status(401).send({
+              success: false,
+              message: "Unauthorized access"
+          });
+      }
+
+      // Already verified
+      if (consumer.emailVerified) {
+          return res.status(400).send({
+              success: false,
+              message: "Email already verified"
+          });
+      }
+
+      // checking if there any existing OTP related with same user
+      const existingOTP = await OTP.findOne({ userId: consumer.id });
+
+      // Removing the existing OTP
+      if (existingOTP) {
+          await OTP.findByIdAndRemove(existingOTP.id);
+      }
+
+      // Generating new randome key and saving it to database for email verification
+      const otp = await new OTP({
+          userId: consumer.id,
+          key: crypto.randomBytes(32).toString("hex")
+      }).save();
+
+      const content = getOTPContent(ROLE.CONSUMER, otp);
+
+      const isEmailSent =  await sendMail(consumer.email, "Verify Email", content);
+
+      if (!isEmailSent) {
+        throw new Error("Unable to send email");
+      }
+
+      res.status(200).send({
+          success: true,
+          message: "Verification link send successfully"
+      });
+
+  } catch (error) {
+      return res.status(400).send({
+          success: false,
+          message: error.message
+      });
+  }
+}
+
 
 module.exports = {
   validateConsumer,
@@ -298,4 +431,6 @@ module.exports = {
   logout,
   loginWithGoogle,
   googleCallback,
+  verifyEmail,
+  resendVerificationEmail
 };
