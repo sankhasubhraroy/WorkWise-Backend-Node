@@ -15,6 +15,7 @@ const { generateJWT } = require("../../helpers/generateJWT");
 const { generateUsername } = require("../../helpers/generateUsername");
 const sendMail = require("../../helpers/sendMail");
 const getOTPContent = require("../../utils/otpContent");
+const getResetPasswordContent = require("../../utils/resetPasswordContent");
 const GOOGLE_REDIRECT_URL = "http://localhost:5000/api/auth/freelancer/google/callback";
 const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
@@ -373,26 +374,129 @@ exports.resendVerificationEmail = async (req, res) => {
         }
 
         // checking if there any existing OTP related with same user
-        const otp = await OTP.findOne({ userId: freelancer.id });
+        const existingOTP = await OTP.findOne({ userId: freelancer.id });
 
         // Removing the existing OTP
-        if (otp) {
-            await OTP.findByIdAndRemove(otp.id);
+        if (existingOTP) {
+            await OTP.findByIdAndRemove(existingOTP.id);
         }
 
         // Generating new randome key and saving it to database for email verification
-        const newOTP = await new OTP({
+        const otp = await new OTP({
             userId: freelancer.id,
             key: crypto.randomBytes(32).toString("hex")
         }).save();
 
-        const content = getOTPContent("freelancer", newOTP);
+        const content = getOTPContent("freelancer", otp);
 
         console.log("is Success:", await sendMail(freelancer.email, "Verify Email", content));
 
         res.status(200).send({
             success: true,
             message: "Verification link send successfully"
+        });
+
+    } catch (error) {
+        return res.status(400).send({
+            success: false,
+            message: error.message
+        });
+    }
+}
+
+// Function to send a link to email for reseting the password || method POST
+exports.forgetPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        // validations
+        if (!email) {
+            return res.status(400).send({
+                success: false,
+                message: "Email is required"
+            });
+        }
+
+        // checking freelancer exists or not
+        const freelancer = await Freelancer.findOne({ email });
+
+        if (!freelancer) {
+            return res.status(400).send({
+                success: false,
+                message: "Account doesn't exists"
+            });
+        }
+
+        // checking if previous OTPs exists related to this freelancer
+        const existingOTP = await OTP.findOne({ userId: freelancer.id });
+
+        // Removing the existing OTP
+        if (existingOTP) {
+            await OTP.findByIdAndRemove(existingOTP.id);
+        }
+
+        // Generating new randome key and saving it to database for password reset
+        const otp = await new OTP({
+            userId: freelancer.id,
+            key: crypto.randomBytes(32).toString("hex")
+        }).save();
+
+        const content = getResetPasswordContent("freelancer", otp);
+
+        console.log("is Success:", await sendMail(freelancer.email, "Reset Password", content));
+
+        res.status(200).send({
+            success: true,
+            message: "Password reset link send successfully"
+        });
+
+    } catch (error) {
+        return res.status(400).send({
+            success: false,
+            message: error.message
+        });
+    }
+}
+
+// Function to reset the password || method GET
+exports.resetPassword = async (req, res) => {
+    try {
+        const freelancer = await Freelancer.findById(req.query.id);
+
+        // When no freelancer exists by this id
+        if (!freelancer) {
+            return res.status(400).send({
+                success: false,
+                message: "Invalid link"
+            });
+        }
+
+        // When freelancer exists by that id, checking if the key is valid or not
+        const otp = await OTP.findOne({
+            userId: req.query.id,
+            key: req.query.key
+        });
+
+        // when key doesn't exists || may have expired
+        if (!otp) {
+            return res.status(400).send({
+                success: false,
+                message: "Invalid link or may have expired"
+            });
+        }
+
+        // encrypting the password and updating freelancer when link is valid
+        const password = req.body.password;
+        const hashedPassword = await hashPassword(password);
+
+        await freelancer.updateOne({ password: hashedPassword });
+
+        // removing the OTP after reseting the password
+        await OTP.findByIdAndRemove(otp.id);
+
+        res.status(200).send({
+            success: true,
+            message: "Password reset successfully"
         });
 
     } catch (error) {

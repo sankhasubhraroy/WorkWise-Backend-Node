@@ -4,7 +4,7 @@ const getOTPContent = (user, otp) => {
         <h1 style="color: #0d6efd;">WorkWise</h1>
         <h2 style="color: #0d6efd;">OTP for Email Verification</h2>
         <p>Your OTP for email verification is <strong>${otp}</strong></p>
-        <p>Please click <a href=${process.env.BASE_URL}/auth/${user}/verify/email/?id=${otp.userId}&key=${otp.key}>here</a> to verify your email.</p>
+        <p>Please click <a href=${process.env.BASE_URL}/auth/${user}/verify-email/?id=${otp.userId}&key=${otp.key}>here</a> to verify your email.</p>
         <p>Thank you for using WorkWise</p>
     </div>
     `;
