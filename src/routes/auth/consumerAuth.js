@@ -8,6 +8,9 @@ const {
   loginWithGoogle,
   verifyEmail,
   resendVerificationEmail,
+  forgetPassword,
+  resetPasswordVerification,
+  resetPassword,
 } = require("../../controllers/auth/consumerAuth");
 const { ROLE } = require("../../helpers/constants");
 const { authUser, authRole } = require("../../middlewares/auth");
@@ -37,6 +40,15 @@ router.get(
   authRole(ROLE.CONSUMER),
   resendVerificationEmail
 );
+
+// Forget password
+router.post("/forget-password", forgetPassword);
+
+// Reset password OTP verification
+router.get("/reset-password", resetPasswordVerification);
+
+// Change password
+router.post("/reset-password", resetPassword);
 
 // Logout consumer
 router.get("/logout", authUser, authRole(ROLE.CONSUMER), logout);

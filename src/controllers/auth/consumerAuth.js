@@ -22,6 +22,7 @@ const {
 const { generateJWT } = require("../../helpers/generateJWT");
 const sendMail = require("../../helpers/sendMail");
 const getOTPContent = require("../../utils/otpContent");
+const getResetPasswordContent = require("../../utils/resetPasswordContent");
 
 // Google OAuth2 Client
 const oauth2Client = new google.auth.OAuth2(
@@ -330,7 +331,7 @@ const verifyEmail = async (req, res) => {
       });
     }
 
-    // When freelancer exists by that id, checking if the key is valid or not
+    // When consumer exists by that id, checking if the key is valid or not
     const otp = await OTP.findOne({
       userId: id,
       key,
@@ -370,59 +371,188 @@ const verifyEmail = async (req, res) => {
 // Resending the OTP again
 const resendVerificationEmail = async (req, res) => {
   try {
-      const consumer = await Consumer.findById(req.user.id).select("-password");
+    const consumer = await Consumer.findById(req.user.id).select("-password");
 
-      // When consumer don't exists
-      if (!consumer) {
-          return res.status(401).send({
-              success: false,
-              message: "Unauthorized access"
-          });
-      }
-
-      // Already verified
-      if (consumer.emailVerified) {
-          return res.status(400).send({
-              success: false,
-              message: "Email already verified"
-          });
-      }
-
-      // checking if there any existing OTP related with same user
-      const existingOTP = await OTP.findOne({ userId: consumer.id });
-
-      // Removing the existing OTP
-      if (existingOTP) {
-          await OTP.findByIdAndRemove(existingOTP.id);
-      }
-
-      // Generating new randome key and saving it to database for email verification
-      const otp = await new OTP({
-          userId: consumer.id,
-          key: crypto.randomBytes(32).toString("hex")
-      }).save();
-
-      const content = getOTPContent(ROLE.CONSUMER, otp);
-
-      const isEmailSent =  await sendMail(consumer.email, "Verify Email", content);
-
-      if (!isEmailSent) {
-        throw new Error("Unable to send email");
-      }
-
-      res.status(200).send({
-          success: true,
-          message: "Verification link send successfully"
+    // When consumer don't exists
+    if (!consumer) {
+      return res.status(401).send({
+        success: false,
+        message: "Unauthorized access",
       });
+    }
 
-  } catch (error) {
+    // Already verified
+    if (consumer.emailVerified) {
       return res.status(400).send({
-          success: false,
-          message: error.message
+        success: false,
+        message: "Email already verified",
       });
-  }
-}
+    }
 
+    // checking if there any existing OTP related with same user
+    const existingOTP = await OTP.findOne({ userId: consumer.id });
+
+    // Removing the existing OTP
+    if (existingOTP) {
+      await OTP.findByIdAndRemove(existingOTP.id);
+    }
+
+    // Generating new randome key and saving it to database for email verification
+    const otp = await new OTP({
+      userId: consumer.id,
+      key: crypto.randomBytes(32).toString("hex"),
+    }).save();
+
+    const content = getOTPContent(ROLE.CONSUMER, otp);
+
+    const isEmailSent = await sendMail(consumer.email, "Verify Email", content);
+
+    if (!isEmailSent) {
+      throw new Error("Unable to send email");
+    }
+
+    res.status(200).send({
+      success: true,
+      message: "Verification link send successfully",
+    });
+  } catch (error) {
+    return res.status(400).send({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// Send a link to email for reseting the password
+const forgetPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // validations
+    if (!email) {
+      return res.status(400).send({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    // checking Consumer exists or not
+    const consumer = await Consumer.findOne({ email });
+
+    if (!consumer) {
+      return res.status(400).send({
+        success: false,
+        message: "Account doesn't exists",
+      });
+    }
+
+    // checking if previous OTPs exists related to this consumer
+    const existingOTP = await OTP.findOne({ userId: consumer.id });
+
+    // Removing the existing OTP
+    if (existingOTP) {
+      await OTP.findByIdAndRemove(existingOTP.id);
+    }
+
+    // Generating new randome key and saving it to database for password reset
+    const otp = await new OTP({
+      userId: consumer.id,
+      key: crypto.randomBytes(32).toString("hex"),
+    }).save();
+
+    const content = getResetPasswordContent(ROLE.CONSUMER, otp);
+
+    isEmailSent = await sendMail(consumer.email, "Reset Password", content);
+
+    if (!isEmailSent) {
+      throw new Error("Unable to send email");
+    }
+
+    res.status(200).send({
+      success: true,
+      message: "Password reset link send successfully",
+    });
+  } catch (error) {
+    return res.status(400).send({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// Reset the password
+const resetPasswordVerification = async (req, res) => {
+  try {
+    const consumer = await Consumer.findById(req.query.id);
+
+    // When no consumer exists by this id
+    if (!consumer) {
+      return res.status(400).send({
+        success: false,
+        message: "Invalid link",
+      });
+    }
+
+    // When consumer exists by that id, checking if the key is valid or not
+    const otp = await OTP.findOne({
+      userId: req.query.id,
+      key: req.query.key,
+    });
+
+    // when key doesn't exists || may have expired
+    if (!otp) {
+      return res.status(400).send({
+        success: false,
+        message: "Invalid link or may have expired",
+      });
+    }
+
+    // removing the OTP after reseting the password
+    await OTP.findByIdAndRemove(otp.id);
+
+    res.status(200).send({
+      success: true,
+      userId: consumer.id,
+      message: "Reset password link verified successfully",
+    });
+  } catch (error) {
+    return res.status(400).send({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  const { userId, password } = req.body;
+
+  // validations
+  if (!userId || !password) {
+    return res.status(400).send({
+      success: false,
+      message: "All fields are required",
+    });
+  }
+  if (!isPasswordValid(password)) {
+    return res.status(400).send({
+      success: false,
+      message:
+        "Password must contain at least 8 characters, one letter and one number and no special characters",
+    });
+  }
+
+  const consumer = await Consumer.findById(userId);
+
+  // encrypting the password and updating consumer when link is valid
+  const hashedPassword = await hashPassword(password);
+
+  await consumer.updateOne({ password: hashedPassword });
+
+  res.status(200).send({
+    success: true,
+    message: "Password reset successfully",
+  });
+};
 
 module.exports = {
   validateConsumer,
@@ -432,5 +562,8 @@ module.exports = {
   loginWithGoogle,
   googleCallback,
   verifyEmail,
-  resendVerificationEmail
+  resendVerificationEmail,
+  forgetPassword,
+  resetPasswordVerification,
+  resetPassword,
 };
