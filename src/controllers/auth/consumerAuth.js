@@ -3,9 +3,9 @@ const crypto = require("crypto");
 const Consumer = require("../../models/consumer");
 const OTP = require("../../models/otp");
 const {
-  hashPassword,
-  comparePassword,
-} = require("../../helpers/passwordEncrypt");
+  encryptData,
+  decryptData,
+} = require("../../helpers/encrypt");
 const {
   ROLE,
   GOOGLE_SCOPES,
@@ -104,7 +104,7 @@ const register = async (req, res) => {
       username,
       email,
       phone,
-      password: await hashPassword(password),
+      password: await encryptData(password),
       avatar: DEFAULT_AVATAR(name),
     };
 
@@ -184,7 +184,7 @@ const login = async (req, res) => {
         message: "You don't have a password, please login with Google",
       });
     }
-    const isMatch = await comparePassword(password, consumer.password);
+    const isMatch = await decryptData(password, consumer.password);
 
     if (!isMatch) {
       return res.status(400).json({
@@ -544,7 +544,7 @@ const resetPassword = async (req, res) => {
   const consumer = await Consumer.findById(userId);
 
   // encrypting the password and updating consumer when link is valid
-  const hashedPassword = await hashPassword(password);
+  const hashedPassword = await encryptData(password);
 
   await consumer.updateOne({ password: hashedPassword });
 

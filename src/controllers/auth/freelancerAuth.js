@@ -1,6 +1,6 @@
 const Freelancer = require("../../models/freelancer");
 const OTP = require('../../models/otp');
-const { hashPassword, comparePassword } = require("../../helpers/passwordEncrypt");
+const { encryptData, decryptData } = require("../../helpers/encrypt");
 const crypto = require('crypto');
 const {
     isNameValid,
@@ -88,7 +88,7 @@ exports.register = async (req, res) => {
         }
 
         // Encrypting the password
-        const hashedPassword = await hashPassword(password);
+        const hashedPassword = await encryptData(password);
 
         // Generating an avatar
         const size = 200;
@@ -166,7 +166,7 @@ exports.login = async (req, res) => {
         }
 
         // comparing the password with database encrypted password
-        const isMatch = await comparePassword(password, freelancer.password);
+        const isMatch = await decryptData(password, freelancer.password);
 
         if (!isMatch) {
             return res.status(200).send({
@@ -487,7 +487,7 @@ exports.resetPassword = async (req, res) => {
 
         // encrypting the password and updating freelancer when link is valid
         const password = req.body.password;
-        const hashedPassword = await hashPassword(password);
+        const hashedPassword = await encryptData(password);
 
         await freelancer.updateOne({ password: hashedPassword });
 
