@@ -1,5 +1,5 @@
 const {
-  getAllSkills,
+  getSkills,
   getSkillById,
   createSkill,
   updateSkill,
@@ -10,12 +10,14 @@ const { create } = require("../../models/consumer");
 
 const router = require("express").Router();
 
-router.get("/all", getAllSkills);
+router.get("/", getSkills);
 
 router.get("/:id", getSkillById);
 
-router.post("/create", authUser, authRole(ROLE.ADMIN), createSkill);
+router.post("/", authUser, authRole(ROLE.ADMIN), createSkill);
 
-router.put("/update/:id", authUser, authRole(ROLE.ADMIN), updateSkill);
+router.put("/:id", authUser, authRole(ROLE.ADMIN), updateSkill);
+
+router.delete("/:id", authUser, authRole(ROLE.ADMIN), deleteSkill);
 
 module.exports = router;

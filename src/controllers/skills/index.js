@@ -1,12 +1,39 @@
 const Skill = require("../../models/skill");
 
-const getAllSkills = async (req, res) => {
+// Pagination, sorting and filtering of skills
+const getSkills = async (req, res) => {
   try {
-    const skills = await Skill.find();
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = "createdAt",
+      orderBy = "desc",
+      popularity = 0,
+      name,
+      basePrice = 0,
+    } = req.query;
+
+    const sortingType = {
+      [sortBy]: orderBy === "desc" ? -1 : 1,
+    };
+
+    const skills = await Skill.find({
+      name: { $regex: name, $options: "i" },
+      basePrice: { $gte: basePrice },
+      popularity: { $gte: popularity },
+    })
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .sort(sortingType);
+
+    const count = await Skill.countDocuments();
+
     res.status(200).json({
       status: "success",
       message: "Skills fetched successfully",
       data: skills,
+      totalPages: Math.ceil(count / limit),
+      currentPage: page,
     });
   } catch (error) {
     res.status(500).json({
@@ -16,6 +43,7 @@ const getAllSkills = async (req, res) => {
   }
 };
 
+// Get a skill by id
 const getSkillById = async (req, res) => {
   try {
     const skill = await Skill.findById(req.params.id);
@@ -38,6 +66,7 @@ const getSkillById = async (req, res) => {
   }
 };
 
+// Create a skill
 const createSkill = async (req, res) => {
   try {
     const { name, description, basePrice, image, icon } = req.body;
@@ -107,13 +136,6 @@ const updateSkill = async (req, res) => {
   }
 };
 
-module.exports = {
-  getAllSkills,
-  getSkillById,
-  createSkill,
-  updateSkill,
-};
-
 // Delete skill
 const deleteSkill = async (req, res) => {
   try {
@@ -140,4 +162,12 @@ const deleteSkill = async (req, res) => {
       message: error.message,
     });
   }
+};
+
+module.exports = {
+  getSkills,
+  getSkillById,
+  createSkill,
+  updateSkill,
+  deleteSkill,
 };
