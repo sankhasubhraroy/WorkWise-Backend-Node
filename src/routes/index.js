@@ -14,4 +14,7 @@ router.get("/ping", (req, res) => {
 // Auth routes
 router.use("/auth", require("./auth"));
 
+// Skills routes
+router.use("/skills", require("./skills"));
+
 module.exports = router;

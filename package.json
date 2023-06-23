@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node ./src/app.js",
     "dev": "nodemon",
+    "dev-init": "git pull && npm install && npm run dev",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
