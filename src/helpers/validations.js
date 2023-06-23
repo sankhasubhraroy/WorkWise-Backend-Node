@@ -7,6 +7,7 @@ const {
 } = require("./constants");
 
 exports.isNameValid = (name) => {
+  if (!name) return false;
   if (name.length < 3) return false;
 
   const isValid = NAME_REGEX.test(name);
@@ -16,6 +17,7 @@ exports.isNameValid = (name) => {
 };
 
 exports.isEmailValid = (email) => {
+  if (!email) return false;
   if (email.length > 254) return false;
 
   const isValid = EMAIL_REGEX.test(email);
@@ -28,6 +30,7 @@ exports.isEmailValid = (email) => {
 };
 
 exports.isUsernameValid = (username) => {
+  if (!username) return false;
   if (username.length < 3) return false;
 
   const isValid = USERNAME_REGEX.test(username);
@@ -37,6 +40,8 @@ exports.isUsernameValid = (username) => {
 };
 
 exports.isPhoneValid = (phone) => {
+  if (!phone) return false;
+
   const isValid = PHONE_REGEX.test(phone);
   if (!isValid) return false;
 
@@ -44,6 +49,8 @@ exports.isPhoneValid = (phone) => {
 };
 
 exports.isPasswordValid = (password) => {
+  if (!password) return false;
+
   const isValid = PASSWORD_REGEX.test(password);
   if (!isValid) return false;
 

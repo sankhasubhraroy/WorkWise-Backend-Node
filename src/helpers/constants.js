@@ -7,10 +7,10 @@ const ROLE = {
 
 // Avatar Image Size for DiceBear Avatars
 const AVATAR_IMAGE_SIZE = 200;
-const DEFAULT_AVATAR = (name)=>`https://avatars.dicebear.com/api/initials/${name}.svg?size=${AVATAR_IMAGE_SIZE}`
+const DEFAULT_AVATAR = (name) => `https://avatars.dicebear.com/api/initials/${name}.svg?size=${AVATAR_IMAGE_SIZE}`
 
 // Regular Expressions for Validations
-const NAME_REGEX = /^[a-zA-Z-]+$/
+const NAME_REGEX = /^[a-zA-Z-\s]+$/
 const EMAIL_REGEX = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
 const USERNAME_REGEX = /^[a-zA-Z0-9]+$/
 const PHONE_REGEX = /^((\+91)?|91?|0)?[789][0-9]{9}$/

@@ -3,6 +3,7 @@ const {
   getSkillById,
   createSkill,
   updateSkill,
+  deleteSkill,
 } = require("../../controllers/skills");
 const { ROLE } = require("../../helpers/constants");
 const { authUser, authRole } = require("../../middlewares/auth");
