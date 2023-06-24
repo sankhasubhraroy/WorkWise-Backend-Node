@@ -66,6 +66,7 @@ exports.createAdmin = async (req, res) => {
     }
 }
 
+// Function for admin to login || method POST
 exports.login = async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -116,6 +117,24 @@ exports.login = async (req, res) => {
             token,
             user: admin,
             type: ROLE.ADMIN
+        });
+
+    } catch (error) {
+        return res.status(400).send({
+            success: false,
+            message: error.message
+        });
+    }
+}
+
+// Logout function || method GET
+exports.logout = async (req, res) => {
+    try {
+        const admin = await Admin.findById(req.user.id).select("-password");
+        res.status(200).send({
+            success: true,
+            message: "User logged out",
+            user: admin
         });
 
     } catch (error) {

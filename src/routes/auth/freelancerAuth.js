@@ -9,6 +9,7 @@ const {
     resendVerificationEmail,
     resetPassword,
     forgetPassword,
+    logout,
 } = require("../../controllers/auth/freelancerAuth");
 const { ROLE } = require("../../helpers/constants");
 const { authUser, authRole } = require("../../middlewares/auth");
@@ -30,5 +31,7 @@ router.get("/resend-verification-email", authUser, authRole(ROLE.FREELANCER), re
 router.post("/forget-password", forgetPassword);
 
 router.post("/reset-password", resetPassword);
+
+router.get("/logout", authUser, authRole(ROLE.FREELANCER), logout);
 
 module.exports = router;

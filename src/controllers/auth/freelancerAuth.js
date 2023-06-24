@@ -506,3 +506,21 @@ exports.resetPassword = async (req, res) => {
         });
     }
 }
+
+// Logout function || method GET
+exports.logout = async (req, res) => {
+    try {
+        const freelancer = await Freelancer.findById(req.user.id).select("-password");
+        res.status(200).send({
+            success: true,
+            message: "User logged out",
+            user: freelancer
+        });
+
+    } catch (error) {
+        return res.status(400).send({
+            success: false,
+            message: error.message
+        });
+    }
+}
