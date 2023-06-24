@@ -1,5 +1,5 @@
 const { DEFAULT_AVATAR, ROLE } = require("../../helpers/constants");
-const { encryptData } = require("../../helpers/encrypt");
+const { encryptData, decryptData } = require("../../helpers/encrypt");
 const { generateJWT } = require("../../helpers/generateJWT");
 const { generateUsername } = require("../../helpers/generateUsername");
 const { isNameValid } = require("../../helpers/validations");
@@ -50,8 +50,8 @@ exports.createAdmin = async (req, res) => {
             success: true,
             message: "Successfully created an admin account",
             secret: {
-                username: username,
-                password: password
+                username,
+                password
             },
             token,
             user: admin,
@@ -60,6 +60,66 @@ exports.createAdmin = async (req, res) => {
 
     } catch (error) {
         return res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+}
+
+exports.login = async (req, res) => {
+    try {
+        const { username, password } = req.body;
+
+        // validations
+        if (!username || !password) {
+            return res.status(400).send({
+                success: false,
+                message: "username and password is required"
+            });
+        }
+
+        // Fetching admin data
+        const admin = await Admin.findOne({ username });
+
+        // If there is no admin rekated to that username
+        if (!admin) {
+            return res.status(400).send({
+                success: false,
+                message: "Wrong username"
+            });
+        }
+
+        // Comparing the password
+        const isMatch = await decryptData(password, admin.password);
+
+        if (!isMatch) {
+            return res.status(400).send({
+                success: false,
+                message: "Wrong password"
+            });
+        }
+
+        // Creating a payload to store it on JWT
+        const payload = {
+            user: {
+                id: admin.id,
+                type: ROLE.ADMIN
+            }
+        };
+
+        // Generating a JWT token and sending it
+        const token = await generateJWT(payload);
+
+        res.status(200).send({
+            success: true,
+            message: "Successfully Logged in",
+            token,
+            user: admin,
+            type: ROLE.ADMIN
+        });
+
+    } catch (error) {
+        return res.status(400).send({
             success: false,
             message: error.message
         });
