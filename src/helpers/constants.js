@@ -22,6 +22,9 @@ const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/userinfo.email",
 ]
 
+// Google callback URL for Google OAuth
+const GOOGLE_CALLBACK_URL = (user) => `http://localhost:5000/api/auth/${user}/google/callback`;
+
 module.exports = {
   ROLE,
   AVATAR_IMAGE_SIZE,
@@ -31,5 +34,6 @@ module.exports = {
   USERNAME_REGEX,
   PHONE_REGEX,
   PASSWORD_REGEX,
-  GOOGLE_SCOPES
+  GOOGLE_SCOPES,
+  GOOGLE_CALLBACK_URL,
 };

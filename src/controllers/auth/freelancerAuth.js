@@ -9,7 +9,12 @@ const {
     isPhoneValid,
     isPasswordValid
 } = require("../../helpers/validations");
-const { ROLE } = require("../../helpers/constants");
+const {
+    ROLE,
+    GOOGLE_SCOPES,
+    DEFAULT_AVATAR,
+    GOOGLE_CALLBACK_URL
+} = require("../../helpers/constants");
 const { google } = require("googleapis");
 const { generateJWT } = require("../../helpers/generateJWT");
 const { generateUsername } = require("../../helpers/generateUsername");
@@ -18,13 +23,15 @@ const {
     getEmailVerificationContent,
     getResetPasswordContent
 } = require("../../helpers/mailContent");
-const GOOGLE_REDIRECT_URL = "http://localhost:5000/api/auth/freelancer/google/callback";
+
+// Google oauth2 client configuration
 const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    GOOGLE_REDIRECT_URL
+    GOOGLE_CALLBACK_URL(ROLE.FREELANCER)
 );
 
+// Function for validating the freelancer || method GET
 exports.validateFreelancer = async (req, res) => {
     try {
         const freelancer = await Freelancer.findById(req.user.id).select("-password -createdAt -updatedAt");
@@ -91,10 +98,8 @@ exports.register = async (req, res) => {
 
         // Encrypting the password
         const hashedPassword = await encryptData(password);
-
         // Generating an avatar
-        const size = 200;
-        const avatar = `https://avatars.dicebear.com/api/initials/${name}.svg?size=${size}`;
+        const avatar = DEFAULT_AVATAR(name);
 
         // Saving Freelancer to database
         const freelancer = await new Freelancer({
@@ -205,22 +210,17 @@ exports.login = async (req, res) => {
     }
 }
 
-// generating google auth url
+// Generating google auth url || method GET
 exports.loginWithGoogle = (req, res) => {
     try {
-        // generate a url that asks permissions for [profile] and email scopes
-        const scopes = [
-            'https://www.googleapis.com/auth/userinfo.profile',
-            'https://www.googleapis.com/auth/userinfo.email'
-        ];
-
+        // Generate a url that asks permissions for [profile] and [email] scopes
         const authUrl = oauth2Client.generateAuthUrl({
             access_type: "offline",
             response_type: "code",
             prompt: "consent",
-            scope: scopes
+            scope: GOOGLE_SCOPES
         });
-
+        // Redirecting to the auth url
         res.redirect(authUrl);
 
     } catch (error) {
@@ -231,11 +231,22 @@ exports.loginWithGoogle = (req, res) => {
     }
 }
 
+// Google callback function || method GET
 exports.googleCallback = async (req, res) => {
     try {
-        const { tokens } = await oauth2Client.getToken(req.query.code);
-        oauth2Client.setCredentials(tokens);
+        // validate the request
+        if (!req.query.code) {
+            return res.status(400).send({
+                success: false,
+                message: "Invalid request"
+            });
+        }
 
+        // Get the access token from the code
+        const { tokens } = await oauth2Client.getToken(req.query.code);
+        // Setting the credentials
+        oauth2Client.setCredentials(tokens);
+        // Setting the auth token
         const oauth2 = google.oauth2({
             auth: oauth2Client,
             version: "v2"
@@ -244,34 +255,26 @@ exports.googleCallback = async (req, res) => {
         // get user info
         const { data } = await oauth2.userinfo.get();
 
-        const userData = {
-            name: data.name,
-            email: data.email,
-            username: await generateUsername(Freelancer, data.name),
-            googleId: data.id,
-            avatar: data.picture,
-            emailVerified: data.verified_email
-        };
-        createFreelancer(userData, res);
+        // checking does freelancer already exists
+        let freelancer = await Freelancer.findOne({ email: data.email }).select("-password");
 
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: error.message,
-        });
-    }
-}
-
-const createFreelancer = async (userData, res) => {
-    try {
-        const { email } = userData;
-
-        // checking is freelancer already exists
-        let freelancer = await Freelancer.findOne({ email });
-
-        // When freelancer don't exists creating a new account
+        // When freelancer don't exists creating a new account, otherwise login
         if (!freelancer) {
-            freelancer = await new Freelancer(userData).save();
+            freelancer = await new Freelancer({
+                name: data.name,
+                email: data.email,
+                username: await generateUsername(Freelancer, data.name),
+                googleId: data.id,
+                avatar: data.picture,
+                emailVerified: data.verified_email
+            }).save();
+        }
+        else {
+            // updating the google id
+            if (!freelancer.googleId) {
+                freelancer.googleId = data.id;
+                await freelancer.save();
+            }
         }
 
         // Creating a payload to store it on jwt
@@ -294,9 +297,9 @@ const createFreelancer = async (userData, res) => {
         });
 
     } catch (error) {
-        return res.status(400).send({
+        return res.status(500).json({
             success: false,
-            message: error.message
+            message: error.message,
         });
     }
 }

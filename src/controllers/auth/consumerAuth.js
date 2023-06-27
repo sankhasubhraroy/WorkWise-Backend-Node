@@ -10,6 +10,7 @@ const {
   ROLE,
   GOOGLE_SCOPES,
   DEFAULT_AVATAR,
+  GOOGLE_CALLBACK_URL,
 } = require("../../helpers/constants");
 const { generateUsername } = require("../../helpers/generateUsername");
 const {
@@ -30,7 +31,7 @@ const {
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_CALLBACK_URL
+  GOOGLE_CALLBACK_URL(ROLE.CONSUMER)
 );
 
 // Token Validation Route for Consumers
@@ -254,6 +255,14 @@ const loginWithGoogle = (req, res) => {
 //callback
 const googleCallback = async (req, res) => {
   try {
+    // validate the request
+    if (!req.query.code) {
+      return res.status(400).send({
+        success: false,
+        message: "Invalid request"
+      });
+    }
+
     const { tokens } = await oauth2Client.getToken(req.query.code);
     oauth2Client.setCredentials(tokens);
 
