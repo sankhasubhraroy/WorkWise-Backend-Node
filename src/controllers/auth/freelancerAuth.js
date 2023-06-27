@@ -118,10 +118,11 @@ exports.register = async (req, res) => {
         // Generating a randome key and saving it to database for email verification
         const otp = await new OTP({
             userId: freelancer.id,
+            userType: ROLE.FREELANCER,
             key: crypto.randomBytes(32).toString("hex")
         }).save();
 
-        const content = getOTPContent("freelancer", otp);
+        const content = getOTPContent(ROLE.FREELANCER, otp);
 
         console.log("is Success:", await sendMail(freelancer.email, "Verify Email", content));
 
@@ -301,7 +302,17 @@ const createFreelancer = async (userData, res) => {
 // function to verify the OTP previously sent to email || method GET
 exports.verifyEmail = async (req, res) => {
     try {
-        const freelancer = await Freelancer.findById(req.query.id);
+        const { id, type, key } = req.query;
+
+        // validations
+        if (type !== ROLE.FREELANCER) {
+            return res.status(400).send({
+                success: false,
+                message: "Invalid link"
+            });
+        }
+
+        const freelancer = await Freelancer.findById(id);
 
         // When no freelancer exists by this id
         if (!freelancer) {
@@ -321,8 +332,9 @@ exports.verifyEmail = async (req, res) => {
 
         // When freelancer exists by that id, checking if the key is valid or not
         const otp = await OTP.findOne({
-            userId: req.query.id,
-            key: req.query.key
+            userId: id,
+            userType: type,
+            key
         });
 
         // when key doesn't exists || may have expired
@@ -374,7 +386,10 @@ exports.resendVerificationEmail = async (req, res) => {
         }
 
         // checking if there any existing OTP related with same user
-        const existingOTP = await OTP.findOne({ userId: freelancer.id });
+        const existingOTP = await OTP.findOne({
+            userId: freelancer.id,
+            userType: ROLE.FREELANCER
+        });
 
         // Removing the existing OTP
         if (existingOTP) {
@@ -384,10 +399,11 @@ exports.resendVerificationEmail = async (req, res) => {
         // Generating new randome key and saving it to database for email verification
         const otp = await new OTP({
             userId: freelancer.id,
+            userType: ROLE.FREELANCER,
             key: crypto.randomBytes(32).toString("hex")
         }).save();
 
-        const content = getOTPContent("freelancer", otp);
+        const content = getOTPContent(ROLE.FREELANCER, otp);
 
         console.log("is Success:", await sendMail(freelancer.email, "Verify Email", content));
 
@@ -428,7 +444,10 @@ exports.forgetPassword = async (req, res) => {
         }
 
         // checking if previous OTPs exists related to this freelancer
-        const existingOTP = await OTP.findOne({ userId: freelancer.id });
+        const existingOTP = await OTP.findOne({
+            userId: freelancer.id,
+            userType: ROLE.FREELANCER
+        });
 
         // Removing the existing OTP
         if (existingOTP) {
@@ -438,10 +457,11 @@ exports.forgetPassword = async (req, res) => {
         // Generating new randome key and saving it to database for password reset
         const otp = await new OTP({
             userId: freelancer.id,
+            userType: ROLE.FREELANCER,
             key: crypto.randomBytes(32).toString("hex")
         }).save();
 
-        const content = getResetPasswordContent("freelancer", otp);
+        const content = getResetPasswordContent(ROLE.FREELANCER, otp);
 
         console.log("is Success:", await sendMail(freelancer.email, "Reset Password", content));
 
@@ -458,10 +478,20 @@ exports.forgetPassword = async (req, res) => {
     }
 }
 
-// Function to reset the password || method GET
+// Function to reset the password || method POST
 exports.resetPassword = async (req, res) => {
     try {
-        const freelancer = await Freelancer.findById(req.query.id);
+        const { id, type, key } = req.query;
+
+        // validations
+        if (type !== ROLE.FREELANCER) {
+            return res.status(400).send({
+                success: false,
+                message: "Invalid link"
+            });
+        }
+
+        const freelancer = await Freelancer.findById(id);
 
         // When no freelancer exists by this id
         if (!freelancer) {
@@ -473,8 +503,9 @@ exports.resetPassword = async (req, res) => {
 
         // When freelancer exists by that id, checking if the key is valid or not
         const otp = await OTP.findOne({
-            userId: req.query.id,
-            key: req.query.key
+            userId: id,
+            userType: type,
+            key
         });
 
         // when key doesn't exists || may have expired
@@ -485,7 +516,7 @@ exports.resetPassword = async (req, res) => {
             });
         }
 
-        // encrypting the password and updating freelancer when link is valid
+        // encrypting the password and updating when link is valid
         const password = req.body.password;
         const hashedPassword = await encryptData(password);
 

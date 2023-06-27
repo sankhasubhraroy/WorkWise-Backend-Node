@@ -5,7 +5,12 @@ const otpSchema = new Schema({
     userId: {
         type: Schema.Types.ObjectId,
         required: true,
-        unique: true
+        refPath: "userType"
+    },
+    userType: {
+        type: String,
+        required: true,
+        enum: ["freelancer", "consumer"]
     },
     key: {
         type: String,

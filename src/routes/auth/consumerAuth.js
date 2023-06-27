@@ -31,7 +31,7 @@ router.get("/google", loginWithGoogle);
 router.get("/google/callback", googleCallback);
 
 // Email verification
-router.get("/verify/email", verifyEmail);
+router.get("/verify-email", verifyEmail);
 
 // Resend verification email
 router.get(
@@ -43,9 +43,6 @@ router.get(
 
 // Forget password
 router.post("/forget-password", forgetPassword);
-
-// Reset password OTP verification
-router.get("/reset-password", resetPasswordVerification);
 
 // Change password
 router.post("/reset-password", resetPassword);
