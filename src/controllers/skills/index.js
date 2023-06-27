@@ -9,7 +9,7 @@ const getSkills = async (req, res) => {
       sortBy = "createdAt",
       orderBy = "desc",
       popularity = 0,
-      name,
+      name = "",
       basePrice = 0,
     } = req.query;
 
@@ -111,6 +111,20 @@ const createSkill = async (req, res) => {
 const updateSkill = async (req, res) => {
   try {
     const skillId = req.params.id;
+
+    if (req.body.basePrice && req.body.basePrice < 0) {
+      return res.status(400).json({
+        status: "error",
+        message: "Base price can't be lesser than 0",
+      });
+    }
+
+    if (req.body.popularity && req.body.popularity < 0) {
+      return res.status(400).json({
+        status: "error",
+        message: "Popularity can't be lesser than 0",
+      });
+    }
 
     // Check if skill exists or not
     const skill = Skill.findById(skillId);

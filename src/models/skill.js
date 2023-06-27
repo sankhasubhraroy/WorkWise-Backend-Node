@@ -16,6 +16,7 @@ const skillSchema = new Schema(
             type: Number,
             required: true,
             trim: true,
+            min: 0,
         },
         image: {
             type: String,
@@ -29,6 +30,7 @@ const skillSchema = new Schema(
             type: Number,
             trim: true,
             default: 0,
+            min: 0,
         },
     },
     {
