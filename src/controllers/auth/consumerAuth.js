@@ -21,8 +21,10 @@ const {
 } = require("../../helpers/validations");
 const { generateJWT } = require("../../helpers/generateJWT");
 const sendMail = require("../../helpers/sendMail");
-const getOTPContent = require("../../utils/otpContent");
-const getResetPasswordContent = require("../../utils/resetPasswordContent");
+const {
+  getEmailVerificationContent,
+  getResetPasswordContent
+} = require("../../helpers/mailContent");
 
 // Google OAuth2 Client
 const oauth2Client = new google.auth.OAuth2(
@@ -127,7 +129,7 @@ const register = async (req, res) => {
     }).save();
 
     // Sending email to the consumer for email verification
-    const mailContent = getOTPContent(ROLE.CONSUMER, otp);
+    const mailContent = getEmailVerificationContent(ROLE.CONSUMER, otp);
     const mailSent = await sendMail(email, "Verify Email", mailContent);
     if (!mailSent) {
       throw new Error("Unable to send email");
@@ -417,7 +419,7 @@ const resendVerificationEmail = async (req, res) => {
       key: crypto.randomBytes(32).toString("hex"),
     }).save();
 
-    const content = getOTPContent(ROLE.CONSUMER, otp);
+    const content = getEmailVerificationContent(ROLE.CONSUMER, otp);
 
     const isEmailSent = await sendMail(consumer.email, "Verify Email", content);
 

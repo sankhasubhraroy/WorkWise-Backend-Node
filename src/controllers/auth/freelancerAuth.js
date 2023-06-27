@@ -14,8 +14,10 @@ const { google } = require("googleapis");
 const { generateJWT } = require("../../helpers/generateJWT");
 const { generateUsername } = require("../../helpers/generateUsername");
 const sendMail = require("../../helpers/sendMail");
-const getOTPContent = require("../../utils/otpContent");
-const getResetPasswordContent = require("../../utils/resetPasswordContent");
+const {
+    getEmailVerificationContent,
+    getResetPasswordContent
+} = require("../../helpers/mailContent");
 const GOOGLE_REDIRECT_URL = "http://localhost:5000/api/auth/freelancer/google/callback";
 const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
@@ -122,7 +124,7 @@ exports.register = async (req, res) => {
             key: crypto.randomBytes(32).toString("hex")
         }).save();
 
-        const content = getOTPContent(ROLE.FREELANCER, otp);
+        const content = getEmailVerificationContent(ROLE.FREELANCER, otp);
 
         console.log("is Success:", await sendMail(freelancer.email, "Verify Email", content));
 
@@ -403,7 +405,7 @@ exports.resendVerificationEmail = async (req, res) => {
             key: crypto.randomBytes(32).toString("hex")
         }).save();
 
-        const content = getOTPContent(ROLE.FREELANCER, otp);
+        const content = getEmailVerificationContent(ROLE.FREELANCER, otp);
 
         console.log("is Success:", await sendMail(freelancer.email, "Verify Email", content));
 
