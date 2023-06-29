@@ -46,14 +46,15 @@ Schemas:
   - Password
   - Phone
   - Address
+  - location
   - Account Details
   - Skills
-  - Projects
+  - experties
   - Priority
   - avatar
   - emailVerified
   - phoneVerified
-  - authorized
+  - approved
 - Work
   - freelancerId
   - consumerId

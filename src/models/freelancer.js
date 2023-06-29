@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
+const Schema = mongoose.Schema;
 
-const freelancerSchema = new mongoose.Schema(
+const freelancerSchema = new Schema(
   {
     name: {
       type: String,
@@ -41,19 +42,62 @@ const freelancerSchema = new mongoose.Schema(
       trim: true,
     },
     address: {
-      type: Object,
-      trim: true,
+      country: {
+        type: String,
+        trim: true,
+      },
+      state: {
+        type: String,
+        trim: true,
+      },
+      city: {
+        type: String,
+        trim: true,
+      },
+      pincode: {
+        type: Number,
+        trim: true,
+      },
+    },
+    location: {
+      type: {
+        type: String,
+        enum: ['Point'],
+        default: 'Point',
+      },
+      coordinates: {
+        type: [Number],
+        default: [0, 0],
+      },
     },
     accountDetails: {
-      type: Object,
-      trim: true,
-    },
-    projects: {
-      type: Array,
-      trim: true,
+      accountHolderName: {
+        type: String,
+        trim: true,
+      },
+      accountNumber: {
+        type: String,
+        trim: true,
+      },
+      ifscCode: {
+        type: String,
+        trim: true,
+      },
+      bankName: {
+        type: String,
+        trim: true,
+      },
+      branchName: {
+        type: String,
+        trim: true,
+      },
     },
     skills: {
-      type: Array,
+      type: [Schema.Types.ObjectId],
+      trim: true,
+    },
+    experties: {
+      type: [String],
       trim: true,
     },
     priority: {
@@ -81,5 +125,7 @@ const freelancerSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+freelancerSchema.index({ location: '2dsphere' });
 
 module.exports = mongoose.model("freelancer", freelancerSchema);

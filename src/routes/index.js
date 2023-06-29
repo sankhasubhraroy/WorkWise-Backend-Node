@@ -17,6 +17,12 @@ router.use("/auth", require("./auth"));
 // Skills routes
 router.use("/skills", require("./skills"));
 
+
+
+
+// Consumer routes
+router.use("/consumer", require("./consumer"));
+
 // Freelancers routes
 router.use("/freelancer", require("./freelancer"));
 
