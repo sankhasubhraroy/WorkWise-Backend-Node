@@ -17,4 +17,7 @@ router.use("/auth", require("./auth"));
 // Skills routes
 router.use("/skills", require("./skills"));
 
+// Freelancers routes
+router.use("/freelancer", require("./freelancer"));
+
 module.exports = router;
