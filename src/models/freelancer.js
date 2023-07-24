@@ -54,20 +54,23 @@ const freelancerSchema = new Schema(
         type: String,
         trim: true,
       },
+      street: {
+        type: String,
+        trim: true,
+      },
       pincode: {
         type: Number,
         trim: true,
       },
-    },
-    location: {
-      type: {
-        type: String,
-        enum: ['Point'],
-        default: 'Point',
-      },
       coordinates: {
-        type: [Number],
-        default: [0, 0],
+        longitude: {
+          type: Number,
+          trim: true,
+        },
+        latitude: {
+          type: Number,
+          trim: true,
+        },
       },
     },
     accountDetails: {
@@ -92,14 +95,19 @@ const freelancerSchema = new Schema(
         trim: true,
       },
     },
-    skills: {
-      type: [Schema.Types.ObjectId],
-      trim: true,
-    },
-    experties: {
-      type: [String],
-      trim: true,
-    },
+    skills: [
+      {
+        type: Schema.Types.ObjectId,
+        trim: true,
+        ref: "Skill",
+      },
+    ],
+    experties: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
     priority: {
       type: Number,
       default: 0,
@@ -126,6 +134,6 @@ const freelancerSchema = new Schema(
   }
 );
 
-freelancerSchema.index({ location: '2dsphere' });
+freelancerSchema.index({ "address.location": "2dsphere" });
 
 module.exports = mongoose.model("freelancer", freelancerSchema);
