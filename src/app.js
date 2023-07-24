@@ -27,6 +27,10 @@ app.use("/", indexRoute);
 
 
 // Start server
-app.listen(process.env.PORT, () => {
+const server = app.listen(process.env.PORT, () => {
   console.log(`Server is running on port ${process.env.PORT}`);
 });
+
+// Configure socket.io
+const connectSocket = require("./config/socketConfig");
+connectSocket(server);
