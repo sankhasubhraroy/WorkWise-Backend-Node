@@ -1,6 +1,4 @@
-const {
-    default: getCoordinatesFromAddress,
-} = require("../../helpers/getCoordinatesFromAddress");
+const getCoordinatesFromAddress = require("../../helpers/getCoordinatesFromAddress");
 const {
     isNameValid,
     isEmailValid,

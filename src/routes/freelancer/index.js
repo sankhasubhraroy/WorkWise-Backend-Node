@@ -4,7 +4,6 @@ const {
   hasAddress,
   hasSkill,
   updatePersonalDetails,
-  skills,
   addSkill,
 } = require("../../controllers/freelancer");
 const {
@@ -30,8 +29,6 @@ router.get("/message/list", authUser, authRole(ROLE.FREELANCER), getConversation
 router.get("/message/get", authUser, authRole(ROLE.FREELANCER), getMessages);
 
 router.post("/message/send", authUser, authRole(ROLE.FREELANCER), sendMessage);
-
-router.get("/skills",authUser, authRole(ROLE.FREELANCER), skills);
 
 router.post("/skills",authUser, authRole(ROLE.FREELANCER), addSkill);
 
