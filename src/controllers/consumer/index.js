@@ -141,6 +141,7 @@ exports.updateUsername = async (req, res) => {
     }
 }
 
+// Function to update password || method: POST
 exports.updatePassword = async (req, res) => {
     try {
         const { id } = req.user;
@@ -207,3 +208,30 @@ exports.updatePassword = async (req, res) => {
     }
 }
 
+// Function to deactivate account || method: GET
+exports.deactivateAccount = async (req, res) => {
+    try {
+        const id = req.user.id;
+
+        // validations
+        if (!id) {
+            return res.status(400).send({
+                success: false,
+                message: "Server Error. Please try again later"
+            });
+        }
+
+        await Consumer.findByIdAndUpdate(id, { activated: false });
+
+        res.status(200).json({
+            success: true,
+            message: "Account deactivated successfully"
+        });
+
+    } catch (error) {
+        return res.status(400).send({
+            success: false,
+            message: error.message,
+        });
+    }
+}

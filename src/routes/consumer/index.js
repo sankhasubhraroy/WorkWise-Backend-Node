@@ -2,7 +2,8 @@ const router = require('express').Router();
 const {
     updateEmail,
     updateUsername,
-    updatePassword
+    updatePassword,
+    deactivateAccount
 } = require('../../controllers/consumer');
 const {
     getConversationList,
@@ -23,5 +24,7 @@ router.get("/message/list", authUser, authRole(ROLE.CONSUMER), getConversationLi
 router.get("/message/get", authUser, authRole(ROLE.CONSUMER), getMessages);
 
 router.post("/message/send", authUser, authRole(ROLE.CONSUMER), sendMessage);
+
+router.get('/deactivate-account', authUser, authRole(ROLE.CONSUMER), deactivateAccount);
 
 module.exports = router;

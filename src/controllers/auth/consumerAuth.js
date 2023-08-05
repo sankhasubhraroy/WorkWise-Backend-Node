@@ -197,6 +197,14 @@ const login = async (req, res) => {
       });
     }
 
+    // Check account is deactivated or not
+    if (!consumer.activated) {
+      return res.status(400).json({
+        success: false,
+        message: "Your account is deactivated, please contact admin",
+      });
+    }
+
     // Payload for the JWT token
     const payload = {
       user: {

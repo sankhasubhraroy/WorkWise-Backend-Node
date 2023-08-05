@@ -128,6 +128,14 @@ const freelancerSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    activated: {
+      type: Boolean,
+      default: true,
+    },
+    banned: {
+      type: Boolean,
+      default: false,
+    }
   },
   {
     timestamps: true,

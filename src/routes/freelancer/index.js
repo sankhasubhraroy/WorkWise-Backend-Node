@@ -5,6 +5,7 @@ const {
   hasSkill,
   updatePersonalDetails,
   addSkill,
+  deactivateAccount,
 } = require("../../controllers/freelancer");
 const {
   getConversationList,
@@ -18,7 +19,7 @@ const router = require("express").Router();
 
 router.get("/", getFreelancers);
 
-router.put("/update-personal-details",authUser, authRole(ROLE.FREELANCER), updatePersonalDetails);
+router.put("/update-personal-details", authUser, authRole(ROLE.FREELANCER), updatePersonalDetails);
 
 router.get("/has-address", authUser, authRole(ROLE.FREELANCER), hasAddress);
 
@@ -30,9 +31,10 @@ router.get("/message/get", authUser, authRole(ROLE.FREELANCER), getMessages);
 
 router.post("/message/send", authUser, authRole(ROLE.FREELANCER), sendMessage);
 
-router.post("/skills",authUser, authRole(ROLE.FREELANCER), addSkill);
+router.post("/skills", authUser, authRole(ROLE.FREELANCER), addSkill);
+
+router.get("/deactivate-account", authUser, authRole(ROLE.FREELANCER), deactivateAccount);
 
 router.get("/:id", getFreelancerById);
-
 
 module.exports = router;

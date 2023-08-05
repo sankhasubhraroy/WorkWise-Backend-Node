@@ -45,8 +45,32 @@ const consumerSchema = new Schema(
       trim: true,
     },
     address: {
-      type: Object,
-      trim: true,
+      country: {
+        type: String,
+        trim: true,
+      },
+      state: {
+        type: String,
+        trim: true,
+      },
+      city: {
+        type: String,
+        trim: true,
+      },
+      pincode: {
+        type: Number,
+        trim: true,
+      },
+      coordinates: {
+        longitude: {
+          type: Number,
+          trim: true,
+        },
+        latitude: {
+          type: Number,
+          trim: true,
+        },
+      },
     },
     paymentDetails: {
       type: Object,
@@ -64,12 +88,20 @@ const consumerSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    activated: {
+      type: Boolean,
+      default: true,
+    },
+    banned: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-const Consumer = mongoose.model("Consumer", consumerSchema);
+const Consumer = mongoose.model("consumer", consumerSchema);
 
 module.exports = Consumer;

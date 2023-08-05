@@ -286,6 +286,34 @@ const addSkill = async (req, res) => {
     }
 };
 
+// Function to deactivate account || method: GET
+const deactivateAccount = async (req, res) => {
+    try {
+        const id = req.user.id;
+
+        // validations
+        if (!id) {
+            return res.status(400).send({
+                success: false,
+                message: "Server Error. Please try again later"
+            });
+        }
+
+        await Freelancer.findByIdAndUpdate(id, { activated: false });
+
+        res.status(200).json({
+            success: true,
+            message: "Account deactivated successfully"
+        });
+
+    } catch (error) {
+        return res.status(400).send({
+            success: false,
+            message: error.message,
+        });
+    }
+}
+
 module.exports = {
     getFreelancers,
     getFreelancerById,
@@ -293,4 +321,5 @@ module.exports = {
     hasAddress,
     hasSkill,
     addSkill,
+    deactivateAccount,
 };

@@ -183,6 +183,14 @@ exports.login = async (req, res) => {
             });
         }
 
+        // Check account is deactivated or not
+        if (!freelancer.activated) {
+            return res.status(400).json({
+                success: false,
+                message: "Your account is deactivated, please contact admin",
+            });
+        }
+
         // Create a paylaod to store it on JWT
         const payload = {
             user: {
