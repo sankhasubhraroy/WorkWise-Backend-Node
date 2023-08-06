@@ -2,43 +2,50 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 const workSchema = new Schema(
-  {
-    freelancerId: {
-      type: ObjectId,
-      required: true,
-      trim: true,
+    {
+        freelancerId: {
+            type: Schema.Types.ObjectId,
+            required: true,
+            trim: true,
+            ref: "Freelancer",
+        },
+        consumerId: {
+            type: Schema.Types.ObjectId,
+            required: true,
+            trim: true,
+            ref: "Consumer"
+        },
+        skillId: {
+            type: Schema.Types.ObjectId,
+            required: true,
+            trim: true,
+            ref: "Skill"
+        },
+        price: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+        description: {
+            type: String,
+            trim: true,
+        },
+        deadline: {
+            type: Date,
+            required: true,
+            trim: true,
+        },
+        status: {
+            type: String,
+            required: true,
+            trim: true,
+            default: "requested",
+        },
     },
-    consumerId: {
-      type: ObjectId,
-      required: true,
-      trim: true,
-    },
-    skillId: {
-      type: ObjectId,
-      required: true,
-      trim: true,
-    },
-    price: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    description: {
-        type: String,
-        trim: true,
-    },
-    deadline: {
-        type: Date,
-        trim: true,
-    },
-    status: {
-      type: String,
-      required: true,
-      trim: true,
-      default: "requested",
-    },
-  },
-  {
-    timestamps: true,
-  }
+    {
+        timestamps: true,
+    }
 );
+
+const Work = mongoose.model("Work", workSchema);
+module.exports = Work;

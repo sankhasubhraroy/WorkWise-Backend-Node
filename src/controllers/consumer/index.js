@@ -1,18 +1,19 @@
-const { ROLE } = require("../../helpers/constants");
+const { ROLE, WORK_STATUS } = require("../../helpers/constants");
 const { encryptData, decryptData } = require("../../helpers/encrypt");
 const { getEmailVerificationContent } = require("../../helpers/mailContent");
 const sendMail = require("../../helpers/sendMail");
 const {
     isEmailValid,
     isUsernameValid,
-    isPasswordValid
+    isPasswordValid,
 } = require("../../helpers/validations");
 const Consumer = require("../../models/consumer");
 const OTP = require("../../models/otp");
 const crypto = require("crypto");
+const Work = require("../../models/work");
 
-// Function to update email and resend verification || method: POST
-exports.updateEmail = async (req, res) => {
+// DESC: @POST - Function to update email and resend verification
+const updateEmail = async (req, res) => {
     try {
         const { id } = req.user;
         const { email } = req.body;
@@ -64,7 +65,7 @@ exports.updateEmail = async (req, res) => {
         const otp = await new OTP({
             userId: id,
             userType: ROLE.CONSUMER,
-            key: crypto.randomBytes(32).toString("hex")
+            key: crypto.randomBytes(32).toString("hex"),
         }).save();
 
         const content = getEmailVerificationContent(ROLE.CONSUMER, otp);
@@ -74,17 +75,16 @@ exports.updateEmail = async (req, res) => {
             success: true,
             message: "Email updated successfully",
         });
-
     } catch (error) {
         return res.status(500).json({
             success: false,
             message: error.message,
         });
     }
-}
+};
 
-// Function to update username || method: POST
-exports.updateUsername = async (req, res) => {
+// DESC: @POST - Function to update username
+const updateUsername = async (req, res) => {
     try {
         const { id } = req.user;
         const { username } = req.body;
@@ -135,14 +135,11 @@ exports.updateUsername = async (req, res) => {
             success: true,
             message: "Username updated successfully",
         });
+    } catch (error) {}
+};
 
-    } catch (error) {
-
-    }
-}
-
-// Function to update password || method: POST
-exports.updatePassword = async (req, res) => {
+// DESC: @POST - Function to update password
+const updatePassword = async (req, res) => {
     try {
         const { id } = req.user;
         const { oldPassword, newPassword } = req.body;
@@ -199,17 +196,16 @@ exports.updatePassword = async (req, res) => {
             success: true,
             message: "Password updated successfully",
         });
-
     } catch (error) {
         return res.status(500).json({
             success: false,
             message: error.message,
         });
     }
-}
+};
 
-// Function to deactivate account || method: GET
-exports.deactivateAccount = async (req, res) => {
+// DESC: @GET - Function to deactivate account
+const deactivateAccount = async (req, res) => {
     try {
         const id = req.user.id;
 
@@ -217,7 +213,7 @@ exports.deactivateAccount = async (req, res) => {
         if (!id) {
             return res.status(400).send({
                 success: false,
-                message: "Server Error. Please try again later"
+                message: "Server Error. Please try again later",
             });
         }
 
@@ -225,13 +221,112 @@ exports.deactivateAccount = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: "Account deactivated successfully"
+            message: "Account deactivated successfully",
         });
-
     } catch (error) {
         return res.status(400).send({
             success: false,
             message: error.message,
         });
     }
-}
+};
+
+// DESC: @PUT - Accept work request given by the freelancer
+const acceptWorkRequest = async (req, res) => {
+    try {
+        const consumer = Consumer.findById(req.user.id);
+        if (!consumer) {
+            return res.status(400).send({
+                success: false,
+                message: "Consumer not found",
+            });
+        }
+        const { workId } = req.body;
+        if (!workId) {
+            return res.status(400).send({
+                success: false,
+                message: "WorkId not found",
+            });
+        }
+        const work = Work.findById(workId);
+        if (!work) {
+            return res.status(400).send({
+                success: false,
+                message: "Work not found",
+            });
+        }
+        if (work.consumerId !== consumer.id) {
+            return res.status(401).send({
+                success: false,
+                message: "Unauthorized to accept this work",
+            });
+        }
+        if (work.status !== WORK_STATUS.REQUESTED) {
+            return res.status(400).send({
+                success: false,
+                message: "Work is already accepted or rejected",
+            });
+        }
+
+        await work.updateOne({ status: WORK_STATUS.ACCEPTED });
+    } catch (error) {
+        return res.status(400).send({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
+// DESC: @PUT - Reject work request given by the freelancer
+const rejectWorkRequest = async (req, res) => {
+    try {
+        const consumer = Consumer.findById(req.user.id);
+        if (!consumer) {
+            return res.status(400).send({
+                success: false,
+                message: "Consumer not found",
+            });
+        }
+        const { workId } = req.body;
+        if (!workId) {
+            return res.status(400).send({
+                success: false,
+                message: "WorkId not found",
+            });
+        }
+        const work = await Work.findById(workId);
+        if (!work) {
+            return res.status(400).send({
+                success: false,
+                message: "Work not found",
+            });
+        }
+        if (work.consumerId !== consumer.id) {
+            return res.status(401).send({
+                success: false,
+                message: "Unauthorized to reject this work",
+            });
+        }
+        if (work.status !== WORK_STATUS.REQUESTED) {
+            return res.status(400).send({
+                success: false,
+                message: "Work is already accepted or rejected",
+            });
+        }
+        await work.updateOne({ status: WORK_STATUS.REJECTED });
+    } catch (error) {
+        return res.status(400).send({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
+module.exports = {
+    updateEmail,
+    updateUsername,
+    updatePassword,
+    deactivateAccount,
+    acceptWorkRequest,
+    rejectWorkRequest,
+};

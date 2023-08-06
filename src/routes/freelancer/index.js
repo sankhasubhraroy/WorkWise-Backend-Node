@@ -6,6 +6,7 @@ const {
   updatePersonalDetails,
   addSkill,
   deactivateAccount,
+  createWorkRequest,
 } = require("../../controllers/freelancer");
 const {
   getConversationList,
@@ -25,13 +26,17 @@ router.get("/has-address", authUser, authRole(ROLE.FREELANCER), hasAddress);
 
 router.get("/has-skill", authUser, authRole(ROLE.FREELANCER), hasSkill);
 
+router.post("/skills", authUser, authRole(ROLE.FREELANCER), addSkill);
+
 router.get("/message/list", authUser, authRole(ROLE.FREELANCER), getConversationList);
 
-router.get("/message/get", authUser, authRole(ROLE.FREELANCER), getMessages);
+router.get("/message", authUser, authRole(ROLE.FREELANCER), getMessages);
 
-router.post("/message/send", authUser, authRole(ROLE.FREELANCER), sendMessage);
+router.post("/message", authUser, authRole(ROLE.FREELANCER), sendMessage);
 
-router.post("/skills", authUser, authRole(ROLE.FREELANCER), addSkill);
+router.get("/work-history",)
+
+router.post("/work-request", authUser, authRole(ROLE.FREELANCER), createWorkRequest);
 
 router.get("/deactivate-account", authUser, authRole(ROLE.FREELANCER), deactivateAccount);
 

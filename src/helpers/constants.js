@@ -5,6 +5,15 @@ const ROLE = {
   FREELANCER: "freelancer",
 };
 
+// Work Statuses
+const WORK_STATUS = {
+  REQUESTED: "requested", // freelancer requested a offer
+  ACCEPTED: "accepted",   // consumer accepted the offer
+  REJECTED: "rejected",   // consumer rejected the offer
+  FAILED: "failed",       // freelancer failed to complete the work within deadline
+  COMPLETED: "completed", // freelancer completed the work within deadline or extended deadline
+};
+
 // Avatar Image Size for DiceBear Avatars
 const AVATAR_IMAGE_SIZE = 200;
 const DEFAULT_AVATAR = (name) => `https://avatars.dicebear.com/api/initials/${name}.svg?size=${AVATAR_IMAGE_SIZE}`
@@ -27,6 +36,7 @@ const GOOGLE_CALLBACK_URL = (user) => `http://localhost:5000/api/auth/${user}/go
 
 module.exports = {
   ROLE,
+  WORK_STATUS,
   AVATAR_IMAGE_SIZE,
   DEFAULT_AVATAR,
   NAME_REGEX,

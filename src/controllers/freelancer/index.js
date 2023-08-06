@@ -4,7 +4,10 @@ const {
     isEmailValid,
     isUsernameValid,
 } = require("../../helpers/validations");
+const Consumer = require("../../models/consumer");
 const Freelancer = require("../../models/freelancer");
+const Skill = require("../../models/skill");
+const Work = require("../../models/work");
 
 // DESC: @GET - Get all freelancers
 const getFreelancers = async (req, res) => {
@@ -286,7 +289,100 @@ const addSkill = async (req, res) => {
     }
 };
 
-// Function to deactivate account || method: GET
+// DESC: @GET - Get work history of freelancer
+const getWorkHistory = async (req, res) => {
+    try {
+        const {freelancerId} = req.query;
+        const freelancer = await Freelancer.findById(freelancerId);
+        if (!freelancer) {
+            return res.status(400).json({
+                status: "error",
+                message: "Invalid freelancer id",
+            });
+        }
+        const workHistory = await Work.find({freelancerId}).populate("consumerId").populate("skillId");
+        if (!workHistory) {
+            return res.status(404).json({
+                status: "error",
+                message: "No work history found",
+            });
+        }
+        res.status(200).json({
+            status: "success",
+            message: "Work history fetched successfully",
+            data: workHistory,
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: "error",
+            message: error.message,
+        });
+    }
+};
+
+
+// DESC: @POST - Create work request
+const createWorkRequest = async (req, res) => {
+    try {
+        const freelancerId = req.user.id;
+        const { consumerId, skillId, price, description="", deadline } = req.body;
+
+        // Validating Consumer
+        const consumer = await Consumer.findById(consumerId);
+        if (!consumer) {
+            return res.status(400).json({
+                status: "error",
+                message: "Invalid consumer id",
+            });
+        }
+
+        // Validating Skill
+        const skill = await Skill.findById(skillId);
+        if (!skill) {
+            return res.status(400).json({
+                status: "error",
+                message: "Invalid skill id",
+            });
+        }
+
+        // Validating Price
+        if (!price || price <= 0) {
+            return res.status(400).json({
+                status: "error",
+                message: "Invalid price",
+            });
+        }
+
+        // Validating Deadline
+        if (!deadline || deadline <= Date.now()) {
+            return res.status(400).json({
+                status: "error",
+                message: "Invalid deadline",
+            });
+        }
+
+        const work = await new Work({
+            freelancerId,
+            consumerId,
+            skillId,
+            price,
+            description,
+            deadline,
+        }).save();
+        return res.status(200).json({
+            status: "success",
+            message: "Work request created successfully",
+            data: work,
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: "error",
+            message: error.message,
+        });
+    }
+};
+
+// DESC: @GET - Function to deactivate account
 const deactivateAccount = async (req, res) => {
     try {
         const id = req.user.id;
@@ -321,5 +417,6 @@ module.exports = {
     hasAddress,
     hasSkill,
     addSkill,
+    createWorkRequest,
     deactivateAccount,
 };

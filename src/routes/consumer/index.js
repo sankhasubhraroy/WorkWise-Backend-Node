@@ -3,7 +3,9 @@ const {
     updateEmail,
     updateUsername,
     updatePassword,
-    deactivateAccount
+    deactivateAccount,
+    acceptWorkRequest,
+    rejectWorkRequest
 } = require('../../controllers/consumer');
 const {
     getConversationList,
@@ -21,10 +23,14 @@ router.post('/update/password', authUser, authRole(ROLE.CONSUMER), updatePasswor
 
 router.get("/message/list", authUser, authRole(ROLE.CONSUMER), getConversationList);
 
-router.get("/message/get", authUser, authRole(ROLE.CONSUMER), getMessages);
+router.get("/message", authUser, authRole(ROLE.CONSUMER), getMessages);
 
-router.post("/message/send", authUser, authRole(ROLE.CONSUMER), sendMessage);
+router.post("/message", authUser, authRole(ROLE.CONSUMER), sendMessage);
 
 router.get('/deactivate-account', authUser, authRole(ROLE.CONSUMER), deactivateAccount);
+
+router.put("/accept-work-request", authUser, authRole(ROLE.CONSUMER), acceptWorkRequest);
+
+router.put("/reject-work-request", authUser, authRole(ROLE.CONSUMER), rejectWorkRequest);
 
 module.exports = router;
