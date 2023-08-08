@@ -322,6 +322,113 @@ const rejectWorkRequest = async (req, res) => {
     }
 };
 
+// DESC: @PUT - Extend work deadline
+const extendWorkDeadline = async (req, res) => {
+    try {
+        const consumer = Consumer.findById(req.user.id);
+        if (!consumer) {
+            return res.status(400).send({
+                success: false,
+                message: "Consumer not found",
+            });
+        }
+        const { workId, deadline } = req.body;
+        if (!workId) {
+            return res.status(400).send({
+                success: false,
+                message: "WorkId not found",
+            });
+        }
+        const work = Work.findById(workId);
+        if (!work) {
+            return res.status(400).send({
+                success: false,
+                message: "Work not found",
+            });
+        }
+        if (work.consumerId !== consumer.id) {
+            return res.status(401).send({
+                success: false,
+                message: "Unauthorized to extend this work",
+            });
+        }
+        if (work.status !== WORK_STATUS.ACCEPTED) {
+            return res.status(400).send({
+                success: false,
+                message: "Work deadline cannot be extended",
+            });
+        }
+        if(!deadline) {
+            return res.status(400).send({
+                success: false,
+                message: "Deadline not found",
+            });
+        }
+        if(deadline <= Date.now()) {
+            return res.status(400).send({
+                success: false,
+                message: "Deadline cannot be less than today's date",
+            });
+        }
+        await work.updateOne({ deadline });
+    } catch (error) {
+        return res.status(400).send({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
+// DESC: @PUT - Cancel the work if not completed within the deadline
+const cancelWorkRequest = async (req, res) => {
+    try {
+        const consumer = Consumer.findById(req.user.id);
+        if (!consumer) {
+            return res.status(400).send({
+                success: false,
+                message: "Consumer not found",
+            });
+        }
+        const { workId } = req.body;
+        if (!workId) {
+            return res.status(400).send({
+                success: false,
+                message: "WorkId not found",
+            });
+        }
+        const work = await Work.findById(workId);
+        if (!work) {
+            return res.status(400).send({
+                success: false,
+                message: "Work not found",
+            });
+        }
+        if (work.consumerId !== consumer.id) {
+            return res.status(401).send({
+                success: false,
+                message: "Unauthorized to cancel this work",
+            });
+        }
+        if (work.status !== WORK_STATUS.ACCEPTED || work.deadline >= Date.now()) {
+            return res.status(400).send({
+                success: false,
+                message: "Work cannot be cancelled",
+            });
+        }
+        await work.updateOne({ status: WORK_STATUS.FAILED });
+
+        return res.status(200).send({
+            success: true,
+            message: "Work cancelled successfully",
+        });
+    } catch (error) {
+        return res.status(500).send({
+            success: false,
+            message: error.message,
+        });
+    }
+}
+
 module.exports = {
     updateEmail,
     updateUsername,
@@ -329,4 +436,6 @@ module.exports = {
     deactivateAccount,
     acceptWorkRequest,
     rejectWorkRequest,
+    extendWorkDeadline,
+    cancelWorkRequest,
 };

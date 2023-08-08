@@ -5,7 +5,9 @@ const {
     updatePassword,
     deactivateAccount,
     acceptWorkRequest,
-    rejectWorkRequest
+    rejectWorkRequest,
+    extendWorkDeadline,
+    cancelWorkRequest
 } = require('../../controllers/consumer');
 const {
     getConversationList,
@@ -32,5 +34,9 @@ router.get('/deactivate-account', authUser, authRole(ROLE.CONSUMER), deactivateA
 router.put("/accept-work-request", authUser, authRole(ROLE.CONSUMER), acceptWorkRequest);
 
 router.put("/reject-work-request", authUser, authRole(ROLE.CONSUMER), rejectWorkRequest);
+
+router.put("/extend-deadline", authUser, authRole(ROLE.CONSUMER), extendWorkDeadline);
+
+router.put("/cancel-work-request", authUser, authRole(ROLE.CONSUMER), cancelWorkRequest);
 
 module.exports = router;
