@@ -34,6 +34,9 @@ exports.getConversationList = async (req, res) => {
                 name,
                 id,
                 lastMessage: message.conversations[message.conversations.length - 1].content,
+                lastMessageType: message.conversations[message.conversations.length - 1].contentType,
+                lastMessageTime: message.updatedAt,
+                unreadMessageCount: message.conversations.filter((chat) => !chat.read && chat.senderId.toString() !== userId).length,
             }
         });
 
@@ -88,7 +91,8 @@ exports.getMessages = async (req, res) => {
         const chats = message.conversations.map((chat) => {
             return {
                 fromSelf: chat.senderId.toString() === senderId,
-                message: chat.content,
+                content: chat.content,
+                contentType: chat.contentType,
                 read: chat.read,
             }
         });
@@ -110,8 +114,7 @@ exports.sendMessage = async (req, res) => {
     try {
         const type = req.user.type;
         const senderId = req.user.id;
-        const receiverId = req.query.receiverId;
-        const { content } = req.body;
+        const { receiverId, content, contentType } = req.body;
         let consumerId, freelancerId;
 
         // Check if the user is a consumer or a freelancer
@@ -129,6 +132,7 @@ exports.sendMessage = async (req, res) => {
                 conversations: {
                     senderId,
                     content,
+                    contentType,
                 }
             }
         }, { new: true });
@@ -141,6 +145,7 @@ exports.sendMessage = async (req, res) => {
                 conversations: [{
                     senderId,
                     content,
+                    contentType,
                 }]
             });
         }
