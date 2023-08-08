@@ -417,6 +417,7 @@ module.exports = {
     hasAddress,
     hasSkill,
     addSkill,
+    getWorkHistory,
     createWorkRequest,
     deactivateAccount,
 };

@@ -7,6 +7,7 @@ const {
   addSkill,
   deactivateAccount,
   createWorkRequest,
+  getWorkHistory,
 } = require("../../controllers/freelancer");
 const {
   getConversationList,
@@ -34,7 +35,7 @@ router.get("/message", authUser, authRole(ROLE.FREELANCER), getMessages);
 
 router.post("/message", authUser, authRole(ROLE.FREELANCER), sendMessage);
 
-router.get("/work-history",)
+router.get("/work-history",getWorkHistory);
 
 router.post("/work-request", authUser, authRole(ROLE.FREELANCER), createWorkRequest);
 
