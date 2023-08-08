@@ -22,6 +22,12 @@ const messageSchema = new Schema({
                 type: Schema.Types.Mixed,
                 required: true,
             },
+            contentType: {
+                type: String,
+                enum: ['text', 'image', 'file', 'video', 'audio', 'location', 'contact', 'sticker', 'gif', 'url', 'payment'],
+                default: 'text',
+                required: true,
+            },
             read: {
                 type: Boolean,
                 default: false,
