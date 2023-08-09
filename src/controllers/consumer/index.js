@@ -10,7 +10,14 @@ const {
 const Consumer = require("../../models/consumer");
 const OTP = require("../../models/otp");
 const crypto = require("crypto");
+const Razorpay = require("razorpay");
 const Work = require("../../models/work");
+
+// Razorpay instance
+const razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
 
 // DESC: @POST - Function to update email and resend verification
 const updateEmail = async (req, res) => {
@@ -135,7 +142,7 @@ const updateUsername = async (req, res) => {
             success: true,
             message: "Username updated successfully",
         });
-    } catch (error) {}
+    } catch (error) { }
 };
 
 // DESC: @POST - Function to update password
@@ -232,30 +239,33 @@ const deactivateAccount = async (req, res) => {
 };
 
 // DESC: @PUT - Accept work request given by the freelancer
-const acceptWorkRequest = async (req, res) => {
+const partiallyAcceptWorkRequest = async (req, res) => {
     try {
-        const consumer = Consumer.findById(req.user.id);
-        if (!consumer) {
+        const id = req.user.id;
+        const { workId } = req.body;
+
+        // validations
+        if (!id) {
             return res.status(400).send({
                 success: false,
                 message: "Consumer not found",
             });
         }
-        const { workId } = req.body;
         if (!workId) {
             return res.status(400).send({
                 success: false,
                 message: "WorkId not found",
             });
         }
-        const work = Work.findById(workId);
+
+        const work = await Work.findById(workId);
         if (!work) {
             return res.status(400).send({
                 success: false,
                 message: "Work not found",
             });
         }
-        if (work.consumerId !== consumer.id) {
+        if (work.consumerId.toString() !== id) {
             return res.status(401).send({
                 success: false,
                 message: "Unauthorized to accept this work",
@@ -268,7 +278,40 @@ const acceptWorkRequest = async (req, res) => {
             });
         }
 
-        await work.updateOne({ status: WORK_STATUS.ACCEPTED });
+        // Create an order
+        const options = {
+            amount: work.price * 100,   // amount in smallest currency unit
+            currency: "INR",
+            receipt: work.id.toString(),
+        }
+
+        const response = await razorpay.orders.create(options);
+
+        if (!response) {
+            return res.status(400).send({
+                success: false,
+                message: "Order creation failed",
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Order created successfully",
+            data: {
+                orderId: response.id,
+                amount: response.amount,
+                currency: response.currency,
+            },
+        });
+
+        // // Update work status
+        // await work.updateOne({ status: WORK_STATUS.ACCEPTED });
+
+        // res.status(200).json({
+        //     success: true,
+        //     message: "Work accepted successfully",
+        // });
+
     } catch (error) {
         return res.status(400).send({
             success: false,
@@ -280,20 +323,23 @@ const acceptWorkRequest = async (req, res) => {
 // DESC: @PUT - Reject work request given by the freelancer
 const rejectWorkRequest = async (req, res) => {
     try {
-        const consumer = Consumer.findById(req.user.id);
-        if (!consumer) {
+        const id = req.user.id;
+        const { workId } = req.body;
+
+        // validations
+        if (!id) {
             return res.status(400).send({
                 success: false,
                 message: "Consumer not found",
             });
         }
-        const { workId } = req.body;
         if (!workId) {
             return res.status(400).send({
                 success: false,
                 message: "WorkId not found",
             });
         }
+
         const work = await Work.findById(workId);
         if (!work) {
             return res.status(400).send({
@@ -301,7 +347,7 @@ const rejectWorkRequest = async (req, res) => {
                 message: "Work not found",
             });
         }
-        if (work.consumerId !== consumer.id) {
+        if (work.consumerId.toString() !== id) {
             return res.status(401).send({
                 success: false,
                 message: "Unauthorized to reject this work",
@@ -313,7 +359,15 @@ const rejectWorkRequest = async (req, res) => {
                 message: "Work is already accepted or rejected",
             });
         }
+
+        // Update work status
         await work.updateOne({ status: WORK_STATUS.REJECTED });
+
+        res.status(200).json({
+            success: true,
+            message: "Work rejected successfully",
+        });
+
     } catch (error) {
         return res.status(400).send({
             success: false,
@@ -325,28 +379,31 @@ const rejectWorkRequest = async (req, res) => {
 // DESC: @PUT - Extend work deadline
 const extendWorkDeadline = async (req, res) => {
     try {
-        const consumer = Consumer.findById(req.user.id);
-        if (!consumer) {
+        const id = req.user.id;
+        const { workId, deadline } = req.body;
+
+        // validations
+        if (!id) {
             return res.status(400).send({
                 success: false,
                 message: "Consumer not found",
             });
         }
-        const { workId, deadline } = req.body;
         if (!workId) {
             return res.status(400).send({
                 success: false,
                 message: "WorkId not found",
             });
         }
-        const work = Work.findById(workId);
+
+        const work = await Work.findById(workId);
         if (!work) {
             return res.status(400).send({
                 success: false,
                 message: "Work not found",
             });
         }
-        if (work.consumerId !== consumer.id) {
+        if (work.consumerId.toString() !== id) {
             return res.status(401).send({
                 success: false,
                 message: "Unauthorized to extend this work",
@@ -358,19 +415,27 @@ const extendWorkDeadline = async (req, res) => {
                 message: "Work deadline cannot be extended",
             });
         }
-        if(!deadline) {
+        if (!deadline) {
             return res.status(400).send({
                 success: false,
                 message: "Deadline not found",
             });
         }
-        if(deadline <= Date.now()) {
+        if (deadline <= Date.now()) {
             return res.status(400).send({
                 success: false,
                 message: "Deadline cannot be less than today's date",
             });
         }
+
+        // Update work deadline
         await work.updateOne({ deadline });
+
+        res.status(200).json({
+            success: true,
+            message: "Work deadline extended successfully",
+        });
+
     } catch (error) {
         return res.status(400).send({
             success: false,
@@ -382,20 +447,23 @@ const extendWorkDeadline = async (req, res) => {
 // DESC: @PUT - Cancel the work if not completed within the deadline
 const cancelWorkRequest = async (req, res) => {
     try {
-        const consumer = Consumer.findById(req.user.id);
-        if (!consumer) {
+        const id = req.user.id;
+        const { workId } = req.body;
+
+        // validations
+        if (!id) {
             return res.status(400).send({
                 success: false,
                 message: "Consumer not found",
             });
         }
-        const { workId } = req.body;
         if (!workId) {
             return res.status(400).send({
                 success: false,
                 message: "WorkId not found",
             });
         }
+
         const work = await Work.findById(workId);
         if (!work) {
             return res.status(400).send({
@@ -403,7 +471,7 @@ const cancelWorkRequest = async (req, res) => {
                 message: "Work not found",
             });
         }
-        if (work.consumerId !== consumer.id) {
+        if (work.consumerId.toString() !== id) {
             return res.status(401).send({
                 success: false,
                 message: "Unauthorized to cancel this work",
@@ -415,6 +483,8 @@ const cancelWorkRequest = async (req, res) => {
                 message: "Work cannot be cancelled",
             });
         }
+
+        // Update work status
         await work.updateOne({ status: WORK_STATUS.FAILED });
 
         return res.status(200).send({
@@ -434,7 +504,7 @@ module.exports = {
     updateUsername,
     updatePassword,
     deactivateAccount,
-    acceptWorkRequest,
+    partiallyAcceptWorkRequest,
     rejectWorkRequest,
     extendWorkDeadline,
     cancelWorkRequest,

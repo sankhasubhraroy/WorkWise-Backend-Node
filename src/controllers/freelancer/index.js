@@ -292,7 +292,7 @@ const addSkill = async (req, res) => {
 // DESC: @GET - Get work history of freelancer
 const getWorkHistory = async (req, res) => {
     try {
-        const {freelancerId} = req.query;
+        const { freelancerId } = req.query;
         const freelancer = await Freelancer.findById(freelancerId);
         if (!freelancer) {
             return res.status(400).json({
@@ -300,7 +300,7 @@ const getWorkHistory = async (req, res) => {
                 message: "Invalid freelancer id",
             });
         }
-        const workHistory = await Work.find({freelancerId}).populate("consumerId").populate("skillId");
+        const workHistory = await Work.find({ freelancerId }).populate("consumerId").populate("skillId");
         if (!workHistory) {
             return res.status(404).json({
                 status: "error",
@@ -325,7 +325,7 @@ const getWorkHistory = async (req, res) => {
 const createWorkRequest = async (req, res) => {
     try {
         const freelancerId = req.user.id;
-        const { consumerId, skillId, price, description="", deadline } = req.body;
+        const { consumerId, skillId, price, description = "", deadline } = req.body;
 
         // Validating Consumer
         const consumer = await Consumer.findById(consumerId);
@@ -361,6 +361,16 @@ const createWorkRequest = async (req, res) => {
             });
         }
 
+        // Checking existing work with same consumer and skill
+        const existingWork = await Work.findOne({ freelancerId, consumerId, skillId });
+        if (existingWork) {
+            return res.status(400).json({
+                status: "error",
+                message: "Work request already in progress",
+            });
+        }
+
+        // Creating work request
         const work = await new Work({
             freelancerId,
             consumerId,
@@ -369,11 +379,13 @@ const createWorkRequest = async (req, res) => {
             description,
             deadline,
         }).save();
+
         return res.status(200).json({
             status: "success",
             message: "Work request created successfully",
             data: work,
         });
+
     } catch (error) {
         res.status(500).json({
             status: "error",

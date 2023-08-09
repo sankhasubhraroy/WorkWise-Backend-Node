@@ -4,7 +4,7 @@ const {
     updateUsername,
     updatePassword,
     deactivateAccount,
-    acceptWorkRequest,
+    partiallyAcceptWorkRequest,
     rejectWorkRequest,
     extendWorkDeadline,
     cancelWorkRequest
@@ -31,7 +31,7 @@ router.post("/message", authUser, authRole(ROLE.CONSUMER), sendMessage);
 
 router.get('/deactivate-account', authUser, authRole(ROLE.CONSUMER), deactivateAccount);
 
-router.put("/accept-work-request", authUser, authRole(ROLE.CONSUMER), acceptWorkRequest);
+router.put("/create-order", authUser, authRole(ROLE.CONSUMER), partiallyAcceptWorkRequest);
 
 router.put("/reject-work-request", authUser, authRole(ROLE.CONSUMER), rejectWorkRequest);
 
