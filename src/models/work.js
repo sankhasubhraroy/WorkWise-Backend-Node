@@ -41,6 +41,10 @@ const workSchema = new Schema(
             trim: true,
             default: "requested",
         },
+        thumbnail: {
+            type: String,
+            trim: true,
+        },
     },
     {
         timestamps: true,
