@@ -14,6 +14,13 @@ const WORK_STATUS = {
   COMPLETED: "completed", // freelancer completed the work within deadline or extended deadline
 };
 
+// Payment Statuses
+const PAYMENT_STATUS = {
+  PENDING: "pending",
+  COMPLETED: "completed",
+  FAILED: "failed",
+};
+
 // Avatar Image Size for DiceBear Avatars
 const AVATAR_IMAGE_SIZE = 200;
 const DEFAULT_AVATAR = (name) => `https://avatars.dicebear.com/api/initials/${name}.svg?size=${AVATAR_IMAGE_SIZE}`
@@ -37,6 +44,7 @@ const GOOGLE_CALLBACK_URL = (user) => `http://localhost:5000/api/auth/${user}/go
 module.exports = {
   ROLE,
   WORK_STATUS,
+  PAYMENT_STATUS,
   AVATAR_IMAGE_SIZE,
   DEFAULT_AVATAR,
   NAME_REGEX,

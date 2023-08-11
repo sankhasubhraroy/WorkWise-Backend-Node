@@ -1,4 +1,8 @@
-const { ROLE, WORK_STATUS } = require("../../helpers/constants");
+const {
+    ROLE,
+    WORK_STATUS,
+    PAYMENT_STATUS,
+} = require("../../helpers/constants");
 const { encryptData, decryptData } = require("../../helpers/encrypt");
 const { getEmailVerificationContent } = require("../../helpers/mailContent");
 const sendMail = require("../../helpers/sendMail");
@@ -12,6 +16,7 @@ const OTP = require("../../models/otp");
 const crypto = require("crypto");
 const Razorpay = require("razorpay");
 const Work = require("../../models/work");
+const Payment = require("../../models/payment");
 
 // Razorpay instance
 const razorpay = new Razorpay({
@@ -142,7 +147,7 @@ const updateUsername = async (req, res) => {
             success: true,
             message: "Username updated successfully",
         });
-    } catch (error) { }
+    } catch (error) {}
 };
 
 // DESC: @POST - Function to update password
@@ -239,7 +244,7 @@ const deactivateAccount = async (req, res) => {
 };
 
 // DESC: @PUT - Accept work request given by the freelancer
-const partiallyAcceptWorkRequest = async (req, res) => {
+const initiatePayment = async (req, res) => {
     try {
         const id = req.user.id;
         const { workId } = req.body;
@@ -280,11 +285,10 @@ const partiallyAcceptWorkRequest = async (req, res) => {
 
         // Create an order
         const options = {
-            amount: work.price * 100,   // amount in smallest currency unit
+            amount: work.price * 100, // amount in smallest currency unit
             currency: "INR",
             receipt: work.id.toString(),
-        }
-
+        };
         const response = await razorpay.orders.create(options);
 
         if (!response) {
@@ -294,23 +298,70 @@ const partiallyAcceptWorkRequest = async (req, res) => {
             });
         }
 
+        // Create payment
+        const payment = await new Payment({
+            workId: work.id,
+            orderId: response.id,
+            amount: response.amount,
+            currency: response.currency,
+            paymentMethod: response.method,
+            paymentStatus: PAYMENT_STATUS.PENDING,
+        }).save();
+
         res.status(200).json({
             success: true,
             message: "Order created successfully",
-            data: {
-                orderId: response.id,
-                amount: response.amount,
-                currency: response.currency,
-            },
+            data: payment,
         });
+    } catch (error) {
+        return res.status(400).send({
+            success: false,
+            message: error.message,
+        });
+    }
+};
 
-        // // Update work status
-        // await work.updateOne({ status: WORK_STATUS.ACCEPTED });
+// DESC: @PUT - Accept work request given by the freelancer
+const acceptWorkRequest = async (req, res) => {
+    try {
+        const id = req.user.id;
+        const { paymentId } = req.body;
 
-        // res.status(200).json({
-        //     success: true,
-        //     message: "Work accepted successfully",
-        // });
+        if (!paymentId) {
+            return res.status(400).send({
+                success: false,
+                message: "PaymentId not found",
+            });
+        }
+        const payment = await Payment.findById(paymentId).populate("workId");
+
+        if (!payment) {
+            return res.status(400).send({
+                success: false,
+                message: "Payment not found",
+            });
+        }
+        const { work } = payment;
+        if (!work) {
+            return res.status(400).send({
+                success: false,
+                message: "Work not found",
+            });
+        }
+        if (work.consumerId.toString() !== id) {
+            return res.status(401).send({
+                success: false,
+                message: "Unauthorized to accept this work",
+            });
+        }
+        if (work.status !== WORK_STATUS.REQUESTED) {
+            return res.status(400).send({
+                success: false,
+                message: "Work is already accepted or rejected",
+            });
+        }
+        await payment.updateOne({ paymentStatus: PAYMENT_STATUS.SUCCESS });
+        await work.updateOne({ status: WORK_STATUS.ACCEPTED });
 
     } catch (error) {
         return res.status(400).send({
@@ -367,7 +418,6 @@ const rejectWorkRequest = async (req, res) => {
             success: true,
             message: "Work rejected successfully",
         });
-
     } catch (error) {
         return res.status(400).send({
             success: false,
@@ -435,7 +485,6 @@ const extendWorkDeadline = async (req, res) => {
             success: true,
             message: "Work deadline extended successfully",
         });
-
     } catch (error) {
         return res.status(400).send({
             success: false,
@@ -477,7 +526,10 @@ const cancelWorkRequest = async (req, res) => {
                 message: "Unauthorized to cancel this work",
             });
         }
-        if (work.status !== WORK_STATUS.ACCEPTED || work.deadline >= Date.now()) {
+        if (
+            work.status !== WORK_STATUS.ACCEPTED ||
+            work.deadline >= Date.now()
+        ) {
             return res.status(400).send({
                 success: false,
                 message: "Work cannot be cancelled",
@@ -497,14 +549,15 @@ const cancelWorkRequest = async (req, res) => {
             message: error.message,
         });
     }
-}
+};
 
 module.exports = {
     updateEmail,
     updateUsername,
     updatePassword,
     deactivateAccount,
-    partiallyAcceptWorkRequest,
+    initiatePayment,
+    acceptWorkRequest,
     rejectWorkRequest,
     extendWorkDeadline,
     cancelWorkRequest,

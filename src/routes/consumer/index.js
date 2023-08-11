@@ -4,10 +4,11 @@ const {
     updateUsername,
     updatePassword,
     deactivateAccount,
-    partiallyAcceptWorkRequest,
+    acceptWorkRequest,
     rejectWorkRequest,
     extendWorkDeadline,
-    cancelWorkRequest
+    cancelWorkRequest,
+    initiatePayment
 } = require('../../controllers/consumer');
 const {
     getConversationList,
@@ -31,7 +32,9 @@ router.post("/message", authUser, authRole(ROLE.CONSUMER), sendMessage);
 
 router.get('/deactivate-account', authUser, authRole(ROLE.CONSUMER), deactivateAccount);
 
-router.put("/create-order", authUser, authRole(ROLE.CONSUMER), partiallyAcceptWorkRequest);
+router.put("/initiate-payment", authUser, authRole(ROLE.CONSUMER), initiatePayment);
+
+router.put("/accept-work-request", authUser, authRole(ROLE.CONSUMER), acceptWorkRequest);
 
 router.put("/reject-work-request", authUser, authRole(ROLE.CONSUMER), rejectWorkRequest);
 
