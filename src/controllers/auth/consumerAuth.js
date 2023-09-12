@@ -2,10 +2,7 @@ const { google } = require("googleapis");
 const crypto = require("crypto");
 const Consumer = require("../../models/consumer");
 const OTP = require("../../models/otp");
-const {
-  encryptData,
-  decryptData,
-} = require("../../helpers/encrypt");
+const { encryptData, decryptData } = require("../../helpers/encrypt");
 const {
   ROLE,
   GOOGLE_SCOPES,
@@ -24,7 +21,7 @@ const { generateJWT } = require("../../helpers/generateJWT");
 const sendMail = require("../../helpers/sendMail");
 const {
   getEmailVerificationContent,
-  getResetPasswordContent
+  getResetPasswordContent,
 } = require("../../helpers/mailContent");
 
 // Google OAuth2 Client
@@ -54,7 +51,7 @@ const validateConsumer = async (req, res, next) => {
 
 // Register Consumers
 const register = async (req, res) => {
-  const { name, username, email, phone, password } = req.body;
+  const { name, email, phone, password } = req.body;
 
   // Validations
   if (!isNameValid(name)) {
@@ -67,12 +64,6 @@ const register = async (req, res) => {
     return res.status(400).send({
       success: false,
       message: "Please enter a valid email address",
-    });
-  }
-  if (!isUsernameValid(username)) {
-    return res.status(400).send({
-      success: false,
-      message: "Username should not contain any special characters",
     });
   }
   if (!isPhoneValid(phone)) {
@@ -92,7 +83,7 @@ const register = async (req, res) => {
   try {
     // Check if consumer already exists
     const doesExist = await Consumer.findOne({
-      $or: [{ email }, { username }, { phone }],
+      $or: [{ email }, { phone }],
     });
 
     if (doesExist) {
@@ -104,7 +95,7 @@ const register = async (req, res) => {
 
     const userData = {
       name,
-      username,
+      username: await generateUsername(Consumer, name),
       email,
       phone,
       password: await encryptData(password),
@@ -267,7 +258,7 @@ const googleCallback = async (req, res) => {
     if (!req.query.code) {
       return res.status(400).send({
         success: false,
-        message: "Invalid request"
+        message: "Invalid request",
       });
     }
 
@@ -339,7 +330,7 @@ const verifyEmail = async (req, res) => {
     if (type !== ROLE.CONSUMER) {
       return res.status(400).send({
         success: false,
-        message: "Invalid link"
+        message: "Invalid link",
       });
     }
 
@@ -482,7 +473,7 @@ const forgetPassword = async (req, res) => {
     // checking if previous OTPs exists related to this consumer
     const existingOTP = await OTP.findOne({
       userId: consumer.id,
-      userType: ROLE.CONSUMER
+      userType: ROLE.CONSUMER,
     });
 
     // Removing the existing OTP
@@ -526,7 +517,7 @@ const resetPassword = async (req, res) => {
     if (type !== ROLE.CONSUMER) {
       return res.status(400).send({
         success: false,
-        message: "Invalid link"
+        message: "Invalid link",
       });
     }
 
@@ -566,9 +557,8 @@ const resetPassword = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Password reset successfully"
+      message: "Password reset successfully",
     });
-
   } catch (error) {
     return res.status(400).send({
       success: false,
